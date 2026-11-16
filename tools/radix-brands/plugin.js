@@ -1,22 +1,42 @@
 import DA_SDK from 'https://da.live/nx/utils/sdk.js';
-import { applyTheme } from '/scripts/radix-theme.js';
-
-const ORIGIN = new URL(import.meta.url).origin;
-const BLOCKS = ['hero', 'cards', 'teaser', 'button'];
-const SAMPLE = '<body><main><div><div class="hero"><div><div><h1>Sample page</h1><p>Open this panel inside Experience Workspace to see your own document.</p><p><a href="#">Primary action</a></p></div></div></div><div class="cards"><div><div><h3>One</h3><p>Same blocks.</p></div></div><div><div><h3>Two</h3><p>Every brand.</p></div></div></div></div></main></body>';
+import { ACCENTS, GRAYS, RADII } from '/scripts/radix-theme.js';
 
 const $ = (s) => document.querySelector(s);
+const el = (t, props = {}, ...kids) => { const n = Object.assign(document.createElement(t), props); n.append(...kids); return n; };
 
-/** Documents are plain EDS markup. Use only <main>, drop scripts and the metadata block. */
+const FIELDS = [
+  { key: 'accentColor', label: 'Accent', options: ACCENTS },
+  { key: 'grayColor', label: 'Gray', options: GRAYS },
+  { key: 'radius', label: 'Radius', options: RADII },
+  { key: 'appearance', label: 'Appearance', options: ['light', 'dark'] },
+  { key: 'scaling', label: 'Scaling (e.g. 100%)' },
+  { key: 'headingTransform', label: 'Heading case', options: ['none', 'uppercase', 'capitalize'] },
+  { key: 'headingFont', label: 'Heading font', wide: true },
+  { key: 'bodyFont', label: 'Body font', wide: true },
+  { key: 'headingTracking', label: 'Heading letter-spacing' },
+];
+
+/** All frames below the top window. Cross-origin frames can still be enumerated and messaged. */
+function allFrames(win, out = []) {
+  try {
+    for (let i = 0; i < win.length; i += 1) { out.push(win[i]); allFrames(win[i], out); }
+  } catch (e) { /* inaccessible */ }
+  return out;
+}
+/** Send a message to every other frame in the editor, including the page preview. */
+function broadcast(message) {
+  let top = window;
+  try { top = window.top; } catch (e) { /* use self */ }
+  allFrames(top).filter((f) => f !== window).forEach((f) => { try { f.postMessage(message, '*'); } catch (e) { /* ignore */ } });
+}
+
 function parse(html) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll('script, style').forEach((n) => n.remove());
   return doc;
 }
-function readBrand(doc) {
-  const row = [...doc.querySelectorAll('.metadata > div')].find((r) => r.children[0]?.textContent.trim().toLowerCase() === 'brand');
-  return row?.children[1]?.textContent.trim().toLowerCase() || null;
-}
+const isBrandRow = (r) => r.children[0]?.textContent.trim().toLowerCase() === 'brand';
+const readBrand = (doc) => [...doc.querySelectorAll('.metadata > div')].find(isBrandRow)?.children[1]?.textContent.trim().toLowerCase() || null;
 function withBrand(html, brand) {
   const doc = parse(html);
   let meta = doc.querySelector('.metadata');
@@ -25,87 +45,102 @@ function withBrand(html, brand) {
     const main = doc.querySelector('main') || doc.body;
     (main.querySelector(':scope > div:last-of-type') || main).append(meta);
   }
-  let row = [...meta.children].find((r) => r.children[0]?.textContent.trim().toLowerCase() === 'brand');
-  if (!row) {
-    row = doc.createElement('div');
-    row.innerHTML = '<div>brand</div><div></div>';
-    meta.append(row);
-  }
+  let row = [...meta.children].find(isBrandRow);
+  if (!row) { row = doc.createElement('div'); row.innerHTML = '<div>brand</div><div></div>'; meta.append(row); }
   row.children[1].textContent = brand;
   return /<html|<body/i.test(html) ? `<body>${doc.body.innerHTML}</body>` : doc.body.innerHTML;
 }
 
-function frameDoc(base) {
-  const css = ['/styles/base.css', ...BLOCKS.map((b) => `/blocks/${b}/${b}.css`)].map((h) => `<link rel="stylesheet" href="${ORIGIN}${h}">`).join('');
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><base href="${base}">${css}
-<style>main > div { padding: 0; } main > div > :is(p,h1,h2,h3,h4,ul,ol) { max-width: 760px; margin: 16px auto; padding: 0 24px; } a { color: var(--accent-11); } img { max-width: 100%; height: auto; } .metadata, .section-metadata { display: none; }</style></head>
-<body><main></main>
-<script type="module">
-import { applyTheme } from '${ORIGIN}/scripts/radix-theme.js';
-addEventListener('message', (e) => {
-  if (e.data?.type === 'theme') applyTheme(e.data.theme);
-  if (e.data?.type === 'content') document.querySelector('main').innerHTML = e.data.html;
-});
-parent.postMessage({ type: 'frame-ready' }, '*');
-<\/script></body></html>`;
-}
-
 (async function init() {
   const sdk = await Promise.race([DA_SDK, new Promise((r) => { setTimeout(() => r(null), 1500); })]);
-  const mock = !sdk;
-  const context = sdk?.context || { org: 'org', repo: 'site', path: '/index' };
+  const context = sdk?.context || {};
   const actions = sdk?.actions || {};
   const cfg = await (await fetch('/tokens/brands.json')).json();
-  const themes = {};
-  await Promise.all(cfg.brands.map(async (b) => { themes[b] = await (await fetch(`/tokens/${b}.json`)).json(); }));
+  const data = {};
+  await Promise.all(cfg.brands.map(async (b) => { data[b] = await (await fetch(`/tokens/${b}.json`)).json(); }));
+  const saved = {}; cfg.brands.forEach((b) => { saved[b] = JSON.stringify(data[b].theme); });
 
-  const frame = $('#frame');
-  let ready = false; let brand = cfg.brands[0]; let liveHtml = SAMPLE; let pageBrand = null;
-  const post = (msg) => frame.contentWindow.postMessage(msg, '*');
-  const paint = () => {
-    if (!ready) return;
-    const doc = parse(liveHtml);
-    pageBrand = readBrand(doc);
-    post({ type: 'content', html: (doc.querySelector('main') || doc.body).innerHTML });
-    post({ type: 'theme', theme: themes[brand].theme });
-    $('#apply').disabled = mock || typeof actions.sendHTML !== 'function' || pageBrand === brand;
-    $('#status').textContent = mock
-      ? 'Preview mode: showing sample content. Open inside Experience Workspace to see your document.'
-      : `Showing your current document in ${themes[brand].name}${pageBrand ? ` · page brand is "${pageBrand}"` : ' · no page brand set'}`;
+  let brand = cfg.brands[0]; let liveHtml = ''; let pageBrand = null; let touched = false;
+  const dirty = () => JSON.stringify(data[brand].theme) !== saved[brand];
+  const status = (t) => { $('#status').textContent = t; };
+  const refresh = () => {
+    $('#apply').disabled = !dirty();
+    $('#setbrand').disabled = !liveHtml || typeof actions.sendHTML !== 'function' || pageBrand === brand;
   };
-  const select = (b) => {
+  const push = () => { broadcast({ type: 'radix-brands:theme', theme: data[brand].theme }); refresh(); };
+
+  function renderControls() {
+    const { theme } = data[brand];
+    $('#controls').replaceChildren(...FIELDS.map((f) => {
+      const input = f.options
+        ? el('select', {}, el('option', { value: '', textContent: '(not set)' }), ...f.options.map((o) => el('option', { value: o, textContent: o })))
+        : el('input', { type: 'text' });
+      input.value = theme[f.key] ?? '';
+      input.addEventListener('input', () => {
+        if (input.value === '') delete theme[f.key]; else theme[f.key] = input.value;
+        push();
+        status('Previewing live in the editor. Apply to save it to the repo.');
+      });
+      return el('label', { className: f.wide ? 'wide' : '' }, f.label, input);
+    }));
+  }
+  function select(b, send = true) {
     brand = b;
     document.querySelectorAll('#brands button').forEach((x) => x.classList.toggle('active', x.dataset.brand === b));
-    paint();
-  };
+    renderControls();
+    if (send) push(); else refresh();
+  }
 
   cfg.brands.forEach((b) => {
-    const btn = Object.assign(document.createElement('button'), { textContent: themes[b].name });
-    btn.dataset.brand = b; btn.addEventListener('click', () => select(b));
+    const btn = el('button', { textContent: data[b].name }); btn.dataset.brand = b;
+    btn.addEventListener('click', () => { touched = true; select(b); status(`Showing ${data[b].name} in the editor view.`); });
     $('#brands').append(btn);
   });
 
-  const page = (context.path || '/index').replace(/^\/[^/]+\/[^/]+(?=\/)/, (m) => (m === `/${context.org}/${context.repo}` ? '' : m)).replace(/\.html$/, '');
-  const base = `https://main--${context.repo}--${context.org}.aem.page${page.replace(/[^/]*$/, '')}`;
-  window.addEventListener('message', (e) => { if (e.source === frame.contentWindow && e.data?.type === 'frame-ready') { ready = true; select(brand); } });
-  frame.srcdoc = frameDoc(base);
+  const repo = context.org && context.repo ? `${context.org}/${context.repo}` : '';
+  try { $('#repo').value = localStorage.getItem('radix-brands-repo') || repo; } catch (e) { $('#repo').value = repo; }
+  try { $('#pat').value = sessionStorage.getItem('radix-brands-pat') || ''; } catch (e) { /* ignore */ }
+  select(brand, false);
+  status(sdk ? 'Pick a brand or change a setting: the editor view updates live.' : 'Preview mode (outside Experience Workspace): nothing to update.');
 
-  // Live document from Experience Workspace (includes unsaved edits).
   if (typeof actions.subscribeLiveDocument === 'function') {
     actions.subscribeLiveDocument(({ html }) => {
       liveHtml = html;
-      const fromDoc = readBrand(parse(html));
-      if (fromDoc && themes[fromDoc] && fromDoc !== brand && !$('#brands').dataset.touched) brand = fromDoc;
-      select(brand);
+      pageBrand = readBrand(parse(html));
+      if (!touched && pageBrand && data[pageBrand] && pageBrand !== brand) select(pageBrand, false);
+      refresh();
     });
   }
-  $('#brands').addEventListener('click', () => { $('#brands').dataset.touched = '1'; });
 
-  // Write the choice into the page's metadata so the site's own preview picks it up.
-  $('#apply').addEventListener('click', async () => {
+  $('#setbrand').addEventListener('click', async () => {
     const out = await actions.sendHTML(withBrand(liveHtml, brand), { replace: true });
-    $('#status').textContent = out?.ok === false
+    status(out?.ok === false
       ? `Could not update the page (${out.error}). Add a metadata row "brand | ${brand}" by hand.`
-      : `Page brand set to "${brand}". The editor preview updates if the site reads the brand metadata.`;
+      : `Page brand set to "${brand}".`);
+  });
+
+  // Persist the theme: commit tokens/<brand>.json, which every block's CSS variables read.
+  $('#apply').addEventListener('click', async () => {
+    const [owner, name] = $('#repo').value.split('/');
+    const token = $('#pat').value;
+    if (!owner || !name || !token) { status('Open "GitHub access" and enter the repo and a token.'); return; }
+    try { localStorage.setItem('radix-brands-repo', $('#repo').value); sessionStorage.setItem('radix-brands-pat', token); } catch (e) { /* ignore */ }
+    const api = `https://api.github.com/repos/${owner}/${name}`;
+    const h = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' };
+    const path = `tokens/${brand}.json`;
+    $('#apply').disabled = true; status('Saving to GitHub…');
+    try {
+      const info = await fetch(api, { headers: h });
+      if (!info.ok) throw new Error(`repo ${info.status}`);
+      const branch = (await info.json()).default_branch;
+      const cur = await fetch(`${api}/contents/${path}?ref=${branch}`, { headers: h });
+      const sha = cur.ok ? (await cur.json()).sha : undefined;
+      const content = btoa(unescape(encodeURIComponent(`${JSON.stringify(data[brand], null, 2)}\n`)));
+      const put = await fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify({ message: `Update ${data[brand].name} Radix theme`, branch, sha, content }) });
+      if (!put.ok) throw new Error(`commit ${put.status}`);
+      saved[brand] = JSON.stringify(data[brand].theme);
+      status(`Saved ${path} to ${branch}. The site picks it up after Code Sync (a few seconds).`);
+    } catch (e) { status(`Save failed: ${e.message}`); }
+    refresh();
   });
 }());

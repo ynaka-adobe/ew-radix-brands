@@ -33,7 +33,24 @@ function link(href) {
   document.head.append(l);
 }
 
-export function applyTheme(config, doc = document) {
+const SAFE_VALUE = /^(?!.*(url\(|@import|expression\(|[;{}<>])).*$/i;
+
+/** Keep only known-good values: this is also called with messages from other frames. */
+export function sanitize(config = {}) {
+  const out = {};
+  if (ACCENTS.includes(config.accentColor)) out.accentColor = config.accentColor;
+  if (GRAYS.includes(config.grayColor)) out.grayColor = config.grayColor;
+  if (RADII.includes(config.radius)) out.radius = config.radius;
+  if (['light', 'dark'].includes(config.appearance)) out.appearance = config.appearance;
+  if (/^\d{2,3}%$/.test(config.scaling || '')) out.scaling = config.scaling;
+  ['headingFont', 'bodyFont', 'headingTracking', 'headingTransform'].forEach((k) => {
+    if (typeof config[k] === 'string' && config[k].length < 200 && SAFE_VALUE.test(config[k])) out[k] = config[k];
+  });
+  return out;
+}
+
+export function applyTheme(rawConfig, doc = document) {
+  const config = sanitize(rawConfig);
   const root = doc.documentElement;
   const { accentColor, grayColor } = config;
   doc.querySelectorAll('link[data-radix]').forEach((l) => l.remove());

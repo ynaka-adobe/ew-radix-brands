@@ -19,6 +19,14 @@ async function applyBrand() {
   return brand;
 }
 
+// Live editing: when this page is shown inside Experience Workspace's preview, the
+// Radix Brand Themes panel posts theme changes here. applyTheme() sanitizes them.
+if (window !== window.top) {
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'radix-brands:theme') applyTheme(e.data.theme);
+  });
+}
+
 /** Resolves once the brand theme is applied. */
 const brandReady = applyBrand();
 export default brandReady;
