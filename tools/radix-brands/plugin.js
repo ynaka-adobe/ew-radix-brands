@@ -28,7 +28,8 @@ let reached = 0; let acks = 0; let ackTimer;
 function broadcast(message, onResult) {
   let top = window;
   try { top = window.top; } catch (e) { /* use self */ }
-  const targets = allFrames(top).filter((f) => f !== window);
+  // DA draws the editor view in its own page (not an iframe), so message the top window too.
+  const targets = [...allFrames(top).filter((f) => f !== window), ...(top !== window ? [top] : [])];
   reached = targets.length; acks = 0;
   targets.forEach((f) => { try { f.postMessage(message, '*'); } catch (e) { /* ignore */ } });
   // The site replies 'radix-brands:applied' when it applied the theme.
@@ -36,27 +37,6 @@ function broadcast(message, onResult) {
   ackTimer = setTimeout(() => onResult?.({ reached, acks }), 700);
 }
 window.addEventListener('message', (e) => { if (e.data?.type === 'radix-brands:applied') acks += 1; });
-
-function parse(html) {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  doc.querySelectorAll('script, style').forEach((n) => n.remove());
-  return doc;
-}
-const isBrandRow = (r) => r.children[0]?.textContent.trim().toLowerCase() === 'brand';
-const readBrand = (doc) => [...doc.querySelectorAll('.metadata > div')].find(isBrandRow)?.children[1]?.textContent.trim().toLowerCase() || null;
-function withBrand(html, brand) {
-  const doc = parse(html);
-  let meta = doc.querySelector('.metadata');
-  if (!meta) {
-    meta = doc.createElement('div'); meta.className = 'metadata';
-    const main = doc.querySelector('main') || doc.body;
-    (main.querySelector(':scope > div:last-of-type') || main).append(meta);
-  }
-  let row = [...meta.children].find(isBrandRow);
-  if (!row) { row = doc.createElement('div'); row.innerHTML = '<div>brand</div><div></div>'; meta.append(row); }
-  row.children[1].textContent = brand;
-  return /<html|<body/i.test(html) ? `<body>${doc.body.innerHTML}</body>` : doc.body.innerHTML;
-}
 
 (async function init() {
   const sdk = await Promise.race([DA_SDK, new Promise((r) => { setTimeout(() => r(null), 1500); })]);
@@ -67,12 +47,11 @@ function withBrand(html, brand) {
   await Promise.all(cfg.brands.map(async (b) => { data[b] = await (await fetch(`/tokens/${b}.json`)).json(); }));
   const saved = {}; cfg.brands.forEach((b) => { saved[b] = JSON.stringify(data[b].theme); });
 
-  let brand = cfg.brands[0]; let liveHtml = ''; let pageBrand = null; let touched = false;
+  let brand = cfg.brands[0];
   const dirty = () => JSON.stringify(data[brand].theme) !== saved[brand];
   const status = (t) => { $('#status').textContent = t; };
   const refresh = () => {
     $('#apply').disabled = !dirty();
-    $('#setbrand').disabled = !liveHtml || typeof actions.sendHTML !== 'function' || pageBrand === brand;
   };
   const push = () => {
     broadcast({ type: 'radix-brands:theme', theme: data[brand].theme }, ({ reached: n, acks: a }) => {
@@ -105,7 +84,7 @@ function withBrand(html, brand) {
 
   cfg.brands.forEach((b) => {
     const btn = el('button', { textContent: data[b].name }); btn.dataset.brand = b;
-    btn.addEventListener('click', () => { touched = true; select(b); status(`Showing ${data[b].name} in the editor view.`); });
+    btn.addEventListener('click', () => { select(b); status(`Showing ${data[b].name} in the editor view.`); });
     $('#brands').append(btn);
   });
 
@@ -115,44 +94,6 @@ function withBrand(html, brand) {
   select(brand, false);
   status(sdk ? 'Pick a brand or change a setting: the editor view updates live.' : 'Preview mode (outside Experience Workspace): nothing to update.');
 
-  if (typeof actions.subscribeLiveDocument === 'function') {
-    actions.subscribeLiveDocument(({ html }) => {
-      liveHtml = html;
-      pageBrand = readBrand(parse(html));
-      if (!touched && pageBrand && data[pageBrand] && pageBrand !== brand) select(pageBrand, false);
-      refresh();
-    });
-  }
-
-  // sendHTML(..., { replace: true }) replaces the block currently selected in the editor.
-  // So: if the metadata block is selected, rewrite it; if the page has none, insert one at the cursor.
-  const metaBlock = (doc, brandName) => {
-    let meta = doc.querySelector('.metadata');
-    if (!meta) { meta = doc.createElement('div'); meta.className = 'metadata'; }
-    let row = [...meta.children].find(isBrandRow);
-    if (!row) { row = doc.createElement('div'); row.innerHTML = '<div>brand</div><div></div>'; meta.append(row); }
-    row.children[1].textContent = brandName;
-    return meta;
-  };
-  $('#setbrand').addEventListener('click', async () => {
-    try {
-      const hasMeta = !!parse(liveHtml).querySelector('.metadata');
-      if (!hasMeta) {
-        actions.sendHTML(metaBlock(parse(''), brand).outerHTML);
-        status(`Inserted a metadata block with brand "${brand}" at your cursor. Move it to the bottom of the page if needed.`);
-        return;
-      }
-      let selected = '';
-      try { selected = await actions.getSelection(); } catch (e) { selected = ''; }
-      const selDoc = parse(selected || '');
-      if (!selDoc.querySelector('.metadata')) {
-        status('Click the metadata block at the bottom of the page to select it, then press this button again.');
-        return;
-      }
-      const out = await actions.sendHTML(metaBlock(selDoc, brand).outerHTML, { replace: true });
-      status(out?.ok === false ? `Could not update the block (${out.error}). Edit the row "brand | ${brand}" by hand.` : `Page brand set to "${brand}".`);
-    } catch (e) { status(`Could not update the page (${e.message || e}). Add a metadata row "brand | ${brand}" by hand.`); }
-  });
 
   // Persist the theme: commit tokens/<brand>.json, which every block's CSS variables read.
   $('#apply').addEventListener('click', async () => {

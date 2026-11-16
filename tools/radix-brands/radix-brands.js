@@ -22,7 +22,7 @@ function broadcast(theme) {
   let top = window;
   try { top = window.top; } catch (e) { /* use self */ }
   const own = allFrames(window); // this app's own gallery iframes get their own messages
-  allFrames(top).filter((f) => f !== window && !own.includes(f))
+  [...allFrames(top).filter((f) => f !== window && !own.includes(f)), ...(top !== window ? [top] : [])]
     .forEach((f) => { try { f.postMessage({ type: 'radix-brands:theme', theme }, '*'); } catch (e) { /* ignore */ } });
 }
 
