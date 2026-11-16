@@ -3,6 +3,6 @@
 body { display: none; }
 body.appear { display: block; }
 img { max-width: 100%; height: auto; }
-main > div > :is(p, h1, h2, h3, ul, ol) { max-width: 760px; margin: 16px auto; padding: 0 24px; }
+main > div > :is(p, h1, h2, h3, ul, ol) { max-width: var(--ds-container, 760px); margin: var(--space-3) auto; padding: 0 var(--space-5); }
 a { color: var(--accent-11); }
 .metadata, .section-metadata { display: none; }

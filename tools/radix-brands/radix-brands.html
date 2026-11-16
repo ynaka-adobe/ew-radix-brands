@@ -12,28 +12,24 @@
 <header>
   <h1>Radix Brand Themes</h1>
   <nav>
-    <button data-tab="designer" class="active">Designer</button>
+    <button data-tab="brands" class="active">Brands</button>
     <button data-tab="parity">Parity</button>
   </nav>
+  <a id="edit" target="_blank" rel="noopener">Edit in the design system ↗</a>
 </header>
 <main>
-  <section id="designer">
+  <section id="brands">
     <aside>
-      <label>Brand <select id="brand"></select></label>
-      <label class="inline"><input type="checkbox" id="compare"> Compare with other brand</label>
-      <div id="controls"></div>
-      <details><summary>Save to GitHub</summary>
-        <label>Repo (owner/name) <input id="repo" placeholder="org/site"></label>
-        <label>Personal access token <input id="pat" type="password" placeholder="repo scope"></label>
-        <label class="inline"><input type="checkbox" id="direct" checked> Commit directly to the default branch (uncheck for a pull request)</label>
-        <button id="save">Apply to repo</button>
-        <p id="saveStatus"></p>
-      </details>
+      <p class="hint" id="source">Loading the design system…</p>
+      <div id="brandList"></div>
+      <label class="inline" id="compareWrap"><input type="checkbox" id="compare"> Compare with other brand</label>
+      <p id="status"></p>
+      <div id="summary"></div>
     </aside>
     <div id="previews"></div>
   </section>
   <section id="parity" hidden>
-    <p class="hint">Every block against every brand. A cell is green when the brand defines every token the block uses.</p>
+    <p class="hint">Every block against every brand. A cell is green when the brand defines everything the block's CSS depends on, and the block uses no hardcoded colors or sizes.</p>
     <div id="matrix"></div>
   </section>
 </main>

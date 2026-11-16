@@ -1,3 +1,4 @@
-/* Brand-neutral base. Colors come from Radix Colors scales (--gray-*, --accent-*). */
-body { margin: 0; background: var(--gray-1); color: var(--gray-12); font-family: var(--brand-font-body); }
-h1, h2, h3 { font-family: var(--brand-font-heading); font-weight: 500; letter-spacing: var(--brand-heading-tracking); text-transform: var(--brand-heading-transform); }
+/* Brand-neutral base. All values come from the Radix design system tokens. */
+body { margin: 0; }
+main { min-height: 100vh; font-family: var(--default-font-family); }
+h1, h2, h3 { font-family: var(--ds-heading-font, inherit); font-weight: var(--ds-heading-weight, 500); letter-spacing: var(--ds-heading-tracking, 0); text-transform: var(--ds-heading-transform, none); }

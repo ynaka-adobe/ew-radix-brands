@@ -1,43 +1,33 @@
 # Radix Brand Themes for Experience Workspace
 
-Share one set of blocks across brands, and let each brand look like itself. Brands are defined as [Radix Themes](https://www.radix-ui.com/themes) style configurations (`accentColor`, `grayColor`, `radius`, `scaling`, `appearance`) and rendered with the 12-step [Radix Colors](https://www.radix-ui.com/colors) scales, loaded from the jsDelivr CDN (`@radix-ui/colors`). Radix is the third-party integration. Plain CSS variables are used, so the blocks work in Edge Delivery without React.
+Edge Delivery blocks that are styled entirely by a **Radix design system**. The UX team edits brands in the [Radix Design System](https://github.com/ynaka-adobe/radix-design-system) (a standalone Radix Themes app). This extension and the site read the published design system at runtime, so a design system update shows up in Experience Workspace and on the site with no code change and no sync step.
+
+Radix is the third-party integration: brands are Radix Themes settings, and the site loads Radix's own token CSS (`@radix-ui/themes/tokens.css`), so blocks use real Radix variables such as `--accent-9`, `--gray-3`, `--space-4`, `--radius-3`, `--font-size-4`.
 
 | Persona | Where | What they do |
 |---|---|---|
-| Author | Library panel (`tools/radix-brands/plugin`) | Pick a brand or change Radix settings and watch the editor's own preview update live. **Apply to repo** saves the theme to GitHub; **Set as this page's brand** writes a `brand` metadata row |
-| Designer | Fullscreen app (`tools/radix-brands/radix-brands`) | Pick Radix accent/gray/radius/scaling/appearance, see every block update live, compare brands side by side, save to GitHub as a pull request |
-| Developer | Parity tab of the same app | Matrix of blocks x brands: missing theme settings and hardcoded colors |
+| UX / design | Radix Design System app | Edit brands (accent, gray, radius, scaling, appearance, typography, layout), compare, export JSON, publish |
+| Author | Radix Brand Themes app (this repo) | Pick a brand and see it in the editor view; the page's `brand` metadata decides the live brand |
+| Developer | Parity tab of the same app | Matrix of blocks x brands: missing design system fields and hardcoded colors or sizes |
 
 ## How it works
-- `tokens/<brand>.json` holds the Radix theme config for a brand.
-- `scripts/radix-theme.js` loads the chosen Radix color scales and maps them to `--accent-1..12`, `--gray-1..12` plus brand variables (`--brand-radius-*`, `--brand-space-section`, fonts).
-- Blocks in `blocks/` only use those variables, never raw colors, so any brand renders correctly.
-- `scripts/brand.js` applies the brand on real pages. It reads `?brand=<name>`, then the page's `brand` metadata.
-
-## How the panel and the editor preview connect
-- Extensions cannot restyle the editor's preview through the SDK. Instead the panel posts the theme (`radix-brands:theme`) to every frame in the editor window, which cross-origin frames allow. `brand.js` on the site listens when it runs inside an iframe, and `applyTheme()` sanitizes the values (known Radix color names only, no URLs).
-- **Apply to repo** commits `tokens/<brand>.json` to the repo's default branch with the GitHub API. Every block's CSS reads that theme through `--accent-*`, `--gray-*` and `--brand-*`, so one commit restyles all blocks. After Code Sync the site serves the new theme.
-- **Set as this page's brand** updates the document with `actions.sendHTML(html, { replace: true })`, adding a metadata row `brand | <name>`.
-- The site must include `brand.js` and blocks that use the variables, otherwise only the panel changes.
+- `scripts/radix-theme.js` loads `manifest.json` and the brand JSON files from the design system, then sets the Radix Themes attributes (`data-accent-color`, `data-gray-color`, `data-radius`, `data-scaling`, light/dark class) on `<main>` and loads Radix's token CSS. Values are validated before use.
+- Blocks (`blocks/`) only use Radix variables and a few `--ds-*` variables (typography and layout) set from the brand file.
+- `scripts/brand.js` picks the brand: `?brand=`, then the page's `brand` metadata, then the first brand.
+- The app (`tools/radix-brands/`) lists the design system's brands, shows each brand's settings, previews the shared blocks, and tries to show the chosen brand in the editor view.
 
 ## Deploy
-1. Copy `tokens/`, `blocks/`, `styles/base.css`, `scripts/radix-theme.js`, `scripts/brand.js` and `tools/radix-brands/` into your Edge Delivery repo and push to `main`. Merge the blocks with your own, keeping the variable convention.
-2. In your site's `scripts.js` add `import './brand.js';` at the top.
-3. List your brands and blocks in `tokens/brands.json`.
-4. In the site config (https://da.live/config#/ORG/SITE/):
+1. Publish the design system (see its README) and set `DEFAULT_DS` in `scripts/radix-theme.js` to its URL. You can also test with `?ds=http://localhost:3016/`.
+2. Copy `blocks/`, `styles/base.css`, `scripts/radix-theme.js`, `scripts/brand.js` and `tools/radix-brands/` into your Edge Delivery repo. In `scripts.js` add `import './brand.js';` and `await` its default export before showing the page (see `scripts/scripts.js` here).
+3. Register the app in the site config (https://da.live/config#/ORG/SITE/):
    - `apps` sheet row: title `Radix Brand Themes`, path `https://da.live/app/ORG/SITE/tools/radix-brands/radix-brands`
-   - `library` sheet row: title `Radix Brand Themes`, path `https://main--SITE--ORG.aem.live/tools/radix-brands/plugin`
-5. Open `https://da.live/app/ORG/SITE/tools/radix-brands/radix-brands`.
+   - or a `panels`/`library` row with path `https://main--SITE--ORG.aem.live/tools/radix-brands/radix-brands.html`
+4. To give a page a brand, add a Metadata block row `brand | <brand id>`.
 
-## Saving to GitHub
-In the designer app open "Save to GitHub", enter `owner/repo` and a fine-grained personal access token with Contents: read/write. The token is only held for the browser session (sessionStorage). Saving writes `tokens/<brand>.json` to branch `radix-brands/<brand>-theme` and links to the pull request.
+## Editor view
+Experience Workspace has no SDK call to restyle its preview. The app posts the chosen brand to the editor window and the site's `brand.js` applies it and replies. If the status line reports that no page responded, refresh the editor; the page reads the brand from its metadata on load.
 
 ## Local development
-Run `python3 -m http.server 3000` in this folder and open `http://localhost:3000/tools/radix-brands/radix-brands.html`. In Experience Workspace use `?ref=local`.
+Run `python3 -m http.server 3000` here and `npm run dev -- --port 3016` in the design system, then open `http://localhost:3000/tools/radix-brands/radix-brands.html?ds=http://localhost:3016/`.
 
-## Demo script
-1. Designer: change the Lexus accent from gold to another Radix color, switch Toyota to dark. Every block follows.
-2. Author: open a page, switch brands in the plugin.
-3. Developer: Parity tab. `Genesis (incomplete)` ships with missing settings to show failures.
-
-Brands are placeholders inspired by automotive branding, not affiliated assets. Radix is a trademark of its owner; this project is not affiliated with or endorsed by Radix or WorkOS.
+Brands are placeholders inspired by automotive branding, not affiliated assets. Not affiliated with or endorsed by Radix or WorkOS.

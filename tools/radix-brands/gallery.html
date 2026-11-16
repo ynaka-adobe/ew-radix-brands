@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Radix Brand Themes gallery</title>
+<title>Design system gallery</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/blocks/hero/hero.css">
@@ -11,17 +11,18 @@
 <link rel="stylesheet" href="/blocks/button/button.css">
 </head>
 <body>
-<div class="hero"><h1>Drive what moves you</h1><p>One block, every brand. This hero is the same markup everywhere.</p><a href="#">Explore models</a></div>
-<div class="cards"><div><h3>Hybrid</h3><p>Efficiency without compromise.</p></div><div><h3>Safety</h3><p>Standard on every trim.</p></div><div><h3>Service</h3><p>Book in two taps.</p></div></div>
-<div class="teaser"><div><div class="teaser-image"></div><div><h2>Find your fit</h2><p>Compare trims side by side.</p></div></div></div>
+<main>
+<div class="hero"><div><div><h1>Drive what moves you</h1><p>One block, every brand. This hero is the same markup everywhere.</p><p><a href="#">Explore models</a></p></div></div></div>
+<div class="cards"><div><div><h3>Hybrid</h3><p>Efficiency without compromise.</p></div></div><div><div><h3>Safety</h3><p>Standard on every trim.</p></div></div><div><div><h3>Service</h3><p>Book in two taps.</p></div></div></div>
+<div class="teaser"><div><div><h2>Find your fit</h2><p>Compare trims side by side.</p></div></div></div>
 <div class="button"><div><div><p><a href="#">Build yours</a></p><p><a href="#">Find a dealer</a></p></div></div></div>
+</main>
 <script type="module">
-import { applyTheme } from '/scripts/radix-theme.js';
-const brand = new URLSearchParams(location.search).get('brand') || 'toyota';
-const r = await fetch(`/tokens/${brand}.json`);
-if (r.ok) applyTheme((await r.json()).theme);
-window.addEventListener('message', (e) => { if (e.data?.type === 'radix-brands:theme') applyTheme(e.data.theme); });
-parent.postMessage({ type: 'radix-brands:ready', brand }, '*');
+import { dsBase, loadManifest, loadBrand, applyBrand } from '/scripts/radix-theme.js';
+const id = new URLSearchParams(location.search).get('brand');
+const base = dsBase();
+const manifest = await loadManifest(base);
+applyBrand(await loadBrand(base, manifest, id), manifest.tokensCss);
 </script>
 </body>
 </html>

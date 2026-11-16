@@ -1,32 +1,37 @@
 /**
- * Applies the active brand's Radix theme to the page.
- * Brand comes from ?brand=, then the page's `brand` metadata, then sessionStorage, then the first brand.
- * Add `import './brand.js';` at the top of your site's scripts.js.
+ * Applies the active brand from the published Radix design system.
+ * Brand: ?brand=, then the page's `brand` metadata, then sessionStorage, then the first brand.
+ * Design system URL: DEFAULT_DS in radix-theme.js (or ?ds= for testing).
+ * Add `import './brand.js';` to your site's scripts.js.
  */
-import { applyTheme } from './radix-theme.js';
+import { dsBase, loadManifest, loadBrand, applyBrand } from './radix-theme.js';
 
-async function applyBrand() {
-  const params = new URLSearchParams(window.location.search);
-  let brand = params.get('brand') || document.querySelector('meta[name="brand"]')?.content;
+async function run() {
   try {
-    if (params.get('brand')) sessionStorage.setItem('radix-brand', brand);
-    else if (!brand) brand = sessionStorage.getItem('radix-brand');
-  } catch (e) { /* storage unavailable */ }
-  if (!brand) brand = (await (await fetch('/tokens/brands.json')).json()).brands[0];
-  const resp = await fetch(`/tokens/${encodeURIComponent(brand)}.json`);
-  if (resp.ok) applyTheme((await resp.json()).theme);
-  document.documentElement.dataset.brand = brand;
-  return brand;
+    const base = dsBase();
+    const manifest = await loadManifest(base);
+    const params = new URLSearchParams(window.location.search);
+    let id = params.get('brand') || document.querySelector('meta[name="brand"]')?.content;
+    try {
+      if (params.get('brand')) sessionStorage.setItem('radix-brand', id);
+      else if (!id) id = sessionStorage.getItem('radix-brand');
+    } catch (e) { /* storage unavailable */ }
+    const brand = await loadBrand(base, manifest, id);
+    applyBrand(brand, manifest.tokensCss);
+    document.documentElement.dataset.brand = brand.id;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Radix design system not applied:', e.message);
+  }
 }
 
-// Live editing: the Radix Brand Themes panel posts theme changes here (from the editor).
-// applyTheme() sanitizes them. We reply so the panel can tell the author it worked.
+// Live preview: the Radix Brand Themes app in Experience Workspace posts a brand here.
 window.addEventListener('message', (e) => {
-  if (e.data?.type !== 'radix-brands:theme') return;
-  applyTheme(e.data.theme);
-  try { e.source?.postMessage({ type: 'radix-brands:applied', href: window.location.href }, '*'); } catch (err) { /* ignore */ }
+  if (e.data?.type !== 'radix-brands:apply') return;
+  applyBrand(e.data.brand, e.data.tokensCss);
+  try { e.source?.postMessage({ type: 'radix-brands:applied' }, '*'); } catch (err) { /* ignore */ }
 });
 
-/** Resolves once the brand theme is applied. */
-const brandReady = applyBrand();
+/** Resolves once the brand is applied (or failed). */
+const brandReady = run();
 export default brandReady;
