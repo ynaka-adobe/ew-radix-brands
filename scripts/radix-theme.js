@@ -28,14 +28,15 @@ export function dsBase() {
 }
 
 export async function loadManifest(base) {
-  const r = await fetch(`${base}manifest.json`);
+  // no-cache: always revalidate, so design system updates show up immediately (304 when unchanged)
+  const r = await fetch(`${base}manifest.json`, { cache: 'no-cache' });
   if (!r.ok) throw new Error(`manifest ${r.status}`);
   return r.json();
 }
 
 export async function loadBrand(base, manifest, id) {
   const entry = manifest.brands.find((b) => b.id === id) || manifest.brands[0];
-  const r = await fetch(new URL(entry.file, `${base}manifest.json`));
+  const r = await fetch(new URL(entry.file, `${base}manifest.json`), { cache: 'no-cache' });
   if (!r.ok) throw new Error(`brand ${r.status}`);
   return { id: entry.id, ...(await r.json()) };
 }
