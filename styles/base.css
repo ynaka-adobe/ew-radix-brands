@@ -1,0 +1,3 @@
+/* Brand-neutral base. Everything visual comes from --brand-* tokens. */
+body { margin: 0; background: var(--brand-surface); color: var(--brand-text); font-family: var(--brand-font-body); }
+h1, h2, h3 { font-family: var(--brand-font-heading); font-weight: var(--brand-heading-weight); letter-spacing: var(--brand-heading-tracking); text-transform: var(--brand-heading-transform); }

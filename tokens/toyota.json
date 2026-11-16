@@ -1,0 +1,20 @@
+{
+  "name": "Toyota",
+  "tokens": {
+    "--brand-accent": "#eb0a1e",
+    "--brand-accent-contrast": "#ffffff",
+    "--brand-surface": "#ffffff",
+    "--brand-surface-alt": "#f2f3f5",
+    "--brand-text": "#1a1a1a",
+    "--brand-text-muted": "#58595b",
+    "--brand-font-heading": "'Helvetica Neue', Arial, sans-serif",
+    "--brand-font-body": "'Helvetica Neue', Arial, sans-serif",
+    "--brand-heading-weight": "700",
+    "--brand-heading-tracking": "0",
+    "--brand-heading-transform": "none",
+    "--brand-radius-card": "12px",
+    "--brand-radius-button": "999px",
+    "--brand-space-section": "64px",
+    "--brand-shadow-card": "0 4px 16px rgba(0,0,0,.12)"
+  }
+}

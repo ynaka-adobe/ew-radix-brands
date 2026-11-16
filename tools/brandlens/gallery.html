@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BrandLens gallery</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/styles/base.css">
+<link rel="stylesheet" href="/blocks/hero/hero.css">
+<link rel="stylesheet" href="/blocks/cards/cards.css">
+<link rel="stylesheet" href="/blocks/teaser/teaser.css">
+<link rel="stylesheet" href="/blocks/button/button.css">
+</head>
+<body>
+<div class="hero"><h1>Drive what moves you</h1><p>One block, every brand. This hero is the same markup everywhere.</p><a href="#">Explore models</a></div>
+<div class="cards"><div><h3>Hybrid</h3><p>Efficiency without compromise.</p></div><div><h3>Safety</h3><p>Standard on every trim.</p></div><div><h3>Service</h3><p>Book in two taps.</p></div></div>
+<div class="teaser"><div class="teaser-image"></div><div><h2>Find your fit</h2><p>Compare trims side by side.</p></div></div>
+<div class="button"><a href="#">Build yours</a><a class="secondary" href="#">Find a dealer</a></div>
+<script type="module">
+const brand = new URLSearchParams(location.search).get('brand') || 'toyota';
+const apply = (t) => Object.entries(t).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+const r = await fetch(`/tokens/${brand}.json`);
+if (r.ok) apply((await r.json()).tokens);
+window.addEventListener('message', (e) => { if (e.data?.type === 'brandlens:tokens') apply(e.data.tokens); });
+parent.postMessage({ type: 'brandlens:ready', brand }, '*');
+</script>
+</body>
+</html>

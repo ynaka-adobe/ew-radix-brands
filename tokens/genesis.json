@@ -1,0 +1,15 @@
+{
+  "name": "Genesis (incomplete)",
+  "tokens": {
+    "--brand-accent": "#b08d57",
+    "--brand-accent-contrast": "#ffffff",
+    "--brand-surface": "#ffffff",
+    "--brand-surface-alt": "#f4f1ec",
+    "--brand-text": "#1a1a1a",
+    "--brand-text-muted": "#8a8a8a",
+    "--brand-font-heading": "Georgia, serif",
+    "--brand-font-body": "Arial, sans-serif",
+    "--brand-radius-card": "4px",
+    "--brand-radius-button": "2px"
+  }
+}
