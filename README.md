@@ -30,4 +30,4 @@ Experience Workspace has no SDK call to restyle its preview. The app posts the c
 ## Local development
 Run `python3 -m http.server 3000` here and `npm run dev -- --port 3016` in the design system, then open `http://localhost:3000/tools/radix-brands/radix-brands.html?ds=http://localhost:3016/`.
 
-Brands are placeholders inspired by automotive branding, not affiliated assets. Not affiliated with or endorsed by Radix or WorkOS.
+Brands (OEM, Distributor A) are placeholders, not real assets. Not affiliated with or endorsed by Radix or WorkOS.
