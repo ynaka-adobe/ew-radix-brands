@@ -32,10 +32,10 @@ async function initSource() {
   if (current === 'local') sel.append(el('option', { value: 'local', textContent: 'Local design system' }));
   sel.value = current || '';
   sel.addEventListener('change', () => {
-    try {
-      if (sel.value && sel.value !== 'local') sessionStorage.setItem('radix-ds', rawBase(sel.value)); else if (!sel.value) sessionStorage.removeItem('radix-ds');
-    } catch (e) { /* storage unavailable */ }
-    window.location.reload();
+    // The ?ds= parameter wins over stored state, so set it explicitly and reload.
+    const url = new URL(window.location.href);
+    url.searchParams.set('ds', !sel.value ? 'live' : sel.value === 'local' ? state.ds.base : rawBase(sel.value));
+    window.location.href = url.href;
   });
 }
 function renderOpenPage() {
