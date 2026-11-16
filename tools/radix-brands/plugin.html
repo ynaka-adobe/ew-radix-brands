@@ -2,17 +2,24 @@
 <html>
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Radix Brand Themes preview</title>
+<title>Radix Brand Themes</title>
 <link rel="icon" href="data:,">
 <style>
-  body { margin:0; font:14px system-ui,sans-serif; padding:8px; }
-  .brands { display:flex; gap:6px; margin-bottom:8px; }
-  button { flex:1; padding:8px; border:1px solid #c9ccd1; border-radius:6px; background:#fff; cursor:pointer; font:inherit; }
-  button.active { background:#1c2024; color:#fff; }
-  iframe { width:100%; height:calc(100vh - 100px); border:1px solid #e0e1e6; border-radius:6px; }
-  a { font-size:12px; }
+  :root { color-scheme: light dark; }
+  body { margin:0; font:13px system-ui,sans-serif; padding:8px; display:flex; flex-direction:column; gap:8px; height:100vh; box-sizing:border-box; }
+  .brands { display:flex; gap:6px; flex-wrap:wrap; }
+  button { flex:1; padding:7px; border:1px solid #c9ccd1; border-radius:6px; background:Canvas; color:CanvasText; cursor:pointer; font:inherit; }
+  button.active { background:CanvasText; color:Canvas; }
+  #apply { background:#3e63dd; color:#fff; border:0; }
+  iframe { flex:1; width:100%; border:1px solid #e0e1e6; border-radius:6px; background:#fff; min-height:200px; }
+  #status { margin:0; color:GrayText; font-size:12px; }
 </style>
 <script type="module" src="/tools/radix-brands/plugin.js"></script>
 </head>
-<body><div class="brands" id="brands"></div><iframe id="frame" title="Brand preview"></iframe><p><a id="open" target="_blank">Open in new tab</a></p></body>
+<body>
+  <div class="brands" id="brands"></div>
+  <button id="apply" disabled>Set as this page's brand</button>
+  <p id="status">Waiting for the document…</p>
+  <iframe id="frame" title="Branded preview of the current document"></iframe>
+</body>
 </html>

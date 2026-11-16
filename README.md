@@ -4,7 +4,7 @@ Share one set of blocks across brands, and let each brand look like itself. Bran
 
 | Persona | Where | What they do |
 |---|---|---|
-| Author | Library plugin (`tools/radix-brands/plugin`) | Switch brand and preview the page they are editing |
+| Author | Library plugin (`tools/radix-brands/plugin`) | Sees the document they are editing, live (including unsaved edits), rendered in any brand. "Set as this page's brand" writes a `brand` row into the page metadata |
 | Designer | Fullscreen app (`tools/radix-brands/radix-brands`) | Pick Radix accent/gray/radius/scaling/appearance, see every block update live, compare brands side by side, save to GitHub as a pull request |
 | Developer | Parity tab of the same app | Matrix of blocks x brands: missing theme settings and hardcoded colors |
 
@@ -12,7 +12,11 @@ Share one set of blocks across brands, and let each brand look like itself. Bran
 - `tokens/<brand>.json` holds the Radix theme config for a brand.
 - `scripts/radix-theme.js` loads the chosen Radix color scales and maps them to `--accent-1..12`, `--gray-1..12` plus brand variables (`--brand-radius-*`, `--brand-space-section`, fonts).
 - Blocks in `blocks/` only use those variables, never raw colors, so any brand renders correctly.
-- `scripts/brand.js` applies the brand on real pages via `?brand=<name>`.
+- `scripts/brand.js` applies the brand on real pages. It reads `?brand=<name>`, then the page's `brand` metadata.
+
+## How the panel and the editor preview connect
+- The panel subscribes to the live document with the Experience Workspace SDK (`actions.subscribeLiveDocument`) and renders it with the shared blocks and the selected Radix theme.
+- Extensions cannot restyle the editor's own preview directly. Instead, "Set as this page's brand" updates the document with `actions.sendHTML(html, { replace: true })`, adding a metadata row `brand | <name>`. A site that includes `brand.js` and the shared blocks re-themes its own preview from that metadata. The site's blocks must use the `--accent-*`, `--gray-*` and `--brand-*` variables, otherwise only this panel changes.
 
 ## Deploy
 1. Copy `tokens/`, `blocks/`, `styles/base.css`, `scripts/radix-theme.js`, `scripts/brand.js` and `tools/radix-brands/` into your Edge Delivery repo and push to `main`. Merge the blocks with your own, keeping the variable convention.
