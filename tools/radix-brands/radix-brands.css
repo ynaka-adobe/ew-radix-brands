@@ -1,6 +1,7 @@
 :root { --bg:#fcfcfd; --panel:#fff; --line:#e0e1e6; --text:#1c2024; --muted:#60646c; --accent:#3e63dd; --ok:#218358; --okbg:#e6f6eb; --bad:#cd2b31; --badbg:#feebec; --warnbg:#fff7c2; }
 @media (prefers-color-scheme: dark) { :root { --bg:#111113; --panel:#18191b; --line:#2e3135; --text:#edeef0; --muted:#b0b4ba; --accent:#849dff; --ok:#3dd68c; --okbg:#0d2d1e; --bad:#ff9592; --badbg:#3b1219; --warnbg:#302a05; } }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin:0; font:14px/1.4 system-ui,sans-serif; background:var(--bg); color:var(--text); }
 header { display:flex; align-items:center; gap:24px; padding:12px 20px; border-bottom:1px solid var(--line); }
 h1 { font-size:16px; margin:0; }
