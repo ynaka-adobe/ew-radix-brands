@@ -1,4 +1,6 @@
-.teaser { display: flex; gap: 32px; align-items: center; padding: var(--brand-space-section) 32px; background: var(--gray-3); color: var(--gray-12); border-left: 6px solid var(--accent-9); }
+.teaser { padding: var(--brand-space-section) 32px; background: var(--gray-3); color: var(--gray-12); border-left: 6px solid var(--accent-9); }
+.teaser > div { display: flex; gap: 32px; align-items: center; }
 .teaser h2 { margin: 0 0 8px; }
 .teaser p { margin: 0; color: var(--gray-11); }
+.teaser picture, .teaser img { display: block; max-width: 220px; border-radius: var(--brand-radius-card); }
 .teaser .teaser-image { width: 200px; height: 120px; background: var(--accent-5); border-radius: var(--brand-radius-card); flex: none; }

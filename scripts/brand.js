@@ -5,7 +5,7 @@
  */
 import { applyTheme } from './radix-theme.js';
 
-export default async function applyBrand() {
+async function applyBrand() {
   const params = new URLSearchParams(window.location.search);
   let brand = params.get('brand') || document.querySelector('meta[name="brand"]')?.content;
   try {
@@ -19,4 +19,6 @@ export default async function applyBrand() {
   return brand;
 }
 
-applyBrand();
+/** Resolves once the brand theme is applied. */
+const brandReady = applyBrand();
+export default brandReady;

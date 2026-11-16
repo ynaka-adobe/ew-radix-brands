@@ -1,3 +1,5 @@
-.button { padding: 32px; background: var(--gray-1); display: flex; gap: 16px; }
+.button { padding: 32px; background: var(--gray-1); }
+.button > div > div { display: flex; gap: 16px; flex-wrap: wrap; }
+.button p { margin: 0; }
 .button a { display: inline-block; padding: 12px 24px; border-radius: var(--brand-radius-button); text-decoration: none; font-family: var(--brand-font-body); background: var(--accent-9); color: var(--accent-contrast); }
-.button a.secondary { background: transparent; color: var(--gray-12); border: 2px solid var(--accent-9); }
+.button a.secondary, .button p:nth-of-type(n+2) a { background: transparent; color: var(--gray-12); border: 2px solid var(--accent-9); }
