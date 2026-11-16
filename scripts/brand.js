@@ -1,21 +1,22 @@
 /**
- * BrandLens runtime. Applies a brand's design tokens as CSS custom properties.
- * Brand comes from ?brand=, then sessionStorage, then <meta name="brand">, then "toyota".
+ * Applies the active brand's Radix theme to the page.
+ * Brand comes from ?brand=, then sessionStorage, then <meta name="brand">, then the first brand.
  * Add `import './brand.js';` at the top of your site's scripts.js.
  */
-export async function applyBrand(root = document.documentElement) {
+import { applyTheme } from './radix-theme.js';
+
+export default async function applyBrand() {
   const params = new URLSearchParams(window.location.search);
   let brand = params.get('brand');
   try {
-    if (brand) sessionStorage.setItem('brandlens-brand', brand);
-    else brand = sessionStorage.getItem('brandlens-brand');
+    if (brand) sessionStorage.setItem('radix-brand', brand);
+    else brand = sessionStorage.getItem('radix-brand');
   } catch (e) { /* storage unavailable */ }
-  brand = brand || document.querySelector('meta[name="brand"]')?.content || 'toyota';
+  if (!brand) brand = document.querySelector('meta[name="brand"]')?.content;
+  if (!brand) brand = (await (await fetch('/tokens/brands.json')).json()).brands[0];
   const resp = await fetch(`/tokens/${encodeURIComponent(brand)}.json`);
-  if (!resp.ok) return brand;
-  const { tokens } = await resp.json();
-  Object.entries(tokens).forEach(([k, v]) => root.style.setProperty(k, v));
-  root.dataset.brand = brand;
+  if (resp.ok) applyTheme((await resp.json()).theme);
+  document.documentElement.dataset.brand = brand;
   return brand;
 }
 

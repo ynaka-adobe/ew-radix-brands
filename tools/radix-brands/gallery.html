@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BrandLens gallery</title>
+<title>Radix Brand Themes gallery</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/styles/base.css">
 <link rel="stylesheet" href="/blocks/hero/hero.css">
@@ -16,12 +16,12 @@
 <div class="teaser"><div class="teaser-image"></div><div><h2>Find your fit</h2><p>Compare trims side by side.</p></div></div>
 <div class="button"><a href="#">Build yours</a><a class="secondary" href="#">Find a dealer</a></div>
 <script type="module">
+import { applyTheme } from '/scripts/radix-theme.js';
 const brand = new URLSearchParams(location.search).get('brand') || 'toyota';
-const apply = (t) => Object.entries(t).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
 const r = await fetch(`/tokens/${brand}.json`);
-if (r.ok) apply((await r.json()).tokens);
-window.addEventListener('message', (e) => { if (e.data?.type === 'brandlens:tokens') apply(e.data.tokens); });
-parent.postMessage({ type: 'brandlens:ready', brand }, '*');
+if (r.ok) applyTheme((await r.json()).theme);
+window.addEventListener('message', (e) => { if (e.data?.type === 'radix-brands:theme') applyTheme(e.data.theme); });
+parent.postMessage({ type: 'radix-brands:ready', brand }, '*');
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding: var(--brand-space-section) 32px; background: var(--brand-surface); }
-.cards > div { background: var(--brand-surface-alt); color: var(--brand-text); border-radius: var(--brand-radius-card); box-shadow: var(--brand-shadow-card); padding: 24px; }
-.cards h3 { margin: 0 0 8px; color: var(--brand-accent); }
-.cards p { margin: 0; color: var(--brand-text-muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding: var(--brand-space-section) 32px; background: var(--gray-1); }
+.cards > div { background: var(--gray-3); color: var(--gray-12); border: 1px solid var(--gray-6); border-radius: var(--brand-radius-card); box-shadow: var(--brand-shadow-card); padding: 24px; }
+.cards h3 { margin: 0 0 8px; color: var(--accent-11); }
+.cards p { margin: 0; color: var(--gray-11); }

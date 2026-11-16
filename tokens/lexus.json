@@ -1,20 +1,14 @@
 {
   "name": "Lexus",
-  "tokens": {
-    "--brand-accent": "#1a1a1a",
-    "--brand-accent-contrast": "#ffffff",
-    "--brand-surface": "#0f0f0f",
-    "--brand-surface-alt": "#1c1c1c",
-    "--brand-text": "#f5f2ec",
-    "--brand-text-muted": "#b8b2a6",
-    "--brand-font-heading": "Georgia, 'Times New Roman', serif",
-    "--brand-font-body": "'Helvetica Neue', Arial, sans-serif",
-    "--brand-heading-weight": "400",
-    "--brand-heading-tracking": "0.12em",
-    "--brand-heading-transform": "uppercase",
-    "--brand-radius-card": "0px",
-    "--brand-radius-button": "0px",
-    "--brand-space-section": "96px",
-    "--brand-shadow-card": "none"
+  "theme": {
+    "accentColor": "gold",
+    "grayColor": "sand",
+    "radius": "none",
+    "scaling": "130%",
+    "appearance": "dark",
+    "headingFont": "Georgia, 'Times New Roman', serif",
+    "bodyFont": "'Helvetica Neue', Arial, sans-serif",
+    "headingTracking": "0.12em",
+    "headingTransform": "uppercase"
   }
 }

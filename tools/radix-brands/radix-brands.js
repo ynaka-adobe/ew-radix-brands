@@ -1,4 +1,5 @@
-const COLOR = /^#[0-9a-f]{6}$/i;
+import { ACCENTS, GRAYS, RADII, sourceOf } from '/scripts/radix-theme.js';
+
 let sdk = null;
 const state = { brands: [], blocks: [], data: {}, current: null };
 
@@ -12,54 +13,60 @@ async function loadSdk() {
 const $ = (s) => document.querySelector(s);
 const el = (t, props = {}, ...kids) => { const n = Object.assign(document.createElement(t), props); n.append(...kids); return n; };
 
-// ---- contrast ----
-const lum = (hex) => {
-  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-    .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-};
-const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
-function warnings(tokens) {
-  const pairs = [['--brand-accent-contrast', '--brand-accent'], ['--brand-text', '--brand-surface'], ['--brand-text-muted', '--brand-surface-alt']];
-  return pairs.filter(([a, b]) => COLOR.test(tokens[a]) && COLOR.test(tokens[b]) && ratio(tokens[a], tokens[b]) < 4.5)
-    .map(([a, b]) => `${a.replace('--brand-', '')} on ${b.replace('--brand-', '')}: ${ratio(tokens[a], tokens[b]).toFixed(1)}:1 fails AA`);
+// ---- designer ----
+function sendTheme(brand) {
+  document.querySelectorAll('#previews iframe').forEach((f) => {
+    if (f.dataset.brand === brand) f.contentWindow.postMessage({ type: 'radix-brands:theme', theme: state.data[brand].theme }, '*');
+  });
 }
 
-// ---- designer ----
-function sendTokens(brand) {
-  document.querySelectorAll('#previews iframe').forEach((f) => {
-    if (f.dataset.brand === brand) f.contentWindow.postMessage({ type: 'brandlens:tokens', tokens: state.data[brand].tokens }, '*');
-  });
-}
+const FIELDS = [
+  { key: 'accentColor', label: 'Accent color', options: ACCENTS },
+  { key: 'grayColor', label: 'Gray color', options: GRAYS },
+  { key: 'radius', label: 'Radius', options: RADII },
+  { key: 'appearance', label: 'Appearance', options: ['light', 'dark'] },
+  { key: 'scaling', label: 'Scaling (e.g. 100%)' },
+  { key: 'headingFont', label: 'Heading font' },
+  { key: 'bodyFont', label: 'Body font' },
+  { key: 'headingTracking', label: 'Heading letter-spacing' },
+  { key: 'headingTransform', label: 'Heading case', options: ['none', 'uppercase', 'capitalize'] },
+];
+
 function renderControls() {
-  const { tokens } = state.data[state.current];
+  const { theme } = state.data[state.current];
   const box = $('#controls'); box.replaceChildren();
-  Object.entries(tokens).forEach(([k, v]) => {
-    const input = el('input', { value: v, type: COLOR.test(v) ? 'color' : 'text' });
+  FIELDS.forEach((f) => {
+    const input = f.options
+      ? el('select', {}, el('option', { value: '', textContent: '(not set)' }), ...f.options.map((o) => el('option', { value: o, textContent: o })))
+      : el('input', { type: 'text' });
+    input.value = theme[f.key] ?? '';
     input.addEventListener('input', () => {
-      tokens[k] = input.value; sendTokens(state.current); renderWarnings();
+      if (input.value === '') delete theme[f.key]; else theme[f.key] = input.value;
+      sendTheme(state.current);
     });
-    box.append(el('label', {}, k.replace('--brand-', ''), input));
+    box.append(el('label', {}, f.label, input));
   });
-  renderWarnings();
 }
-function renderWarnings() {
-  $('#warnings').replaceChildren(...warnings(state.data[state.current].tokens).map((w) => el('div', { textContent: w })));
-}
+
 function renderPreviews() {
   const brands = [state.current];
   if ($('#compare').checked) brands.push(state.brands.find((b) => b !== state.current));
-  $('#previews').replaceChildren(...brands.map((b) => el('iframe', { src: `/tools/brandlens/gallery.html?brand=${b}`, title: b, 'data-brand': b })));
+  $('#previews').replaceChildren(...brands.map((b) => {
+    const f = el('iframe', { src: `/tools/radix-brands/gallery.html?brand=${b}`, title: b });
+    f.dataset.brand = b;
+    return f;
+  }));
 }
+
 async function save() {
   const status = $('#saveStatus');
   const [owner, repo] = ($('#repo').value || '').split('/');
   const token = $('#pat').value;
   if (!owner || !repo || !token) { status.textContent = 'Repo and token are required.'; return; }
-  try { localStorage.setItem('brandlens-repo', $('#repo').value); } catch (e) { /* ignore */ }
+  try { localStorage.setItem('radix-brands-repo', $('#repo').value); } catch (e) { /* ignore */ }
   const api = `https://api.github.com/repos/${owner}/${repo}`;
   const h = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' };
-  const branch = `brandlens/${state.current}-tokens`;
+  const branch = `radix-brands/${state.current}-theme`;
   const path = `tokens/${state.current}.json`;
   try {
     const repoInfo = await (await fetch(api, { headers: h })).json();
@@ -68,8 +75,8 @@ async function save() {
     if (!mk.ok && mk.status !== 422) throw new Error(`branch: ${mk.status}`);
     const cur = await fetch(`${api}/contents/${path}?ref=${branch}`, { headers: h });
     const sha = cur.ok ? (await cur.json()).sha : undefined;
-    const body = { message: `BrandLens: update ${state.current} tokens`, branch, sha, content: btoa(unescape(encodeURIComponent(`${JSON.stringify(state.data[state.current], null, 2)}\n`))) };
-    const put = await fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify(body) });
+    const content = btoa(unescape(encodeURIComponent(`${JSON.stringify(state.data[state.current], null, 2)}\n`)));
+    const put = await fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify({ message: `Update ${state.current} Radix theme`, branch, sha, content }) });
     if (!put.ok) throw new Error(`commit: ${put.status}`);
     status.replaceChildren('Saved. ', el('a', { href: `https://github.com/${owner}/${repo}/compare/${repoInfo.default_branch}...${branch}?expand=1`, target: '_blank', textContent: 'Open pull request' }));
   } catch (e) { status.textContent = `Save failed: ${e.message}`; }
@@ -80,32 +87,28 @@ async function renderParity() {
   const used = {};
   await Promise.all(state.blocks.map(async (b) => {
     const css = await (await fetch(`/blocks/${b}/${b}.css`)).text();
-    used[b] = { vars: [...new Set([...css.matchAll(/var\((--brand-[\w-]+)/g)].map((m) => m[1]))], hardcoded: (css.match(/#[0-9a-f]{3,8}\b|rgba?\(/gi) || []).length };
+    const vars = [...new Set([...css.matchAll(/var\((--(?:brand|accent|gray)-[\w-]+)/g)].map((m) => m[1]))];
+    used[b] = { keys: [...new Set(vars.map(sourceOf).filter(Boolean))], hardcoded: (css.match(/#[0-9a-f]{3,8}\b|rgba?\(/gi) || []).length };
   }));
   const table = el('table');
   table.append(el('tr', {}, el('th', { textContent: 'Block' }), ...state.brands.map((b) => el('th', { textContent: state.data[b].name }))));
   state.blocks.forEach((b) => {
-    const tr = el('tr', {}, el('th', {}, b, el('small', { textContent: `${used[b].vars.length} tokens` })));
+    const tr = el('tr', {}, el('th', {}, b, el('small', { textContent: `needs: ${used[b].keys.join(', ')}` })));
     state.brands.forEach((br) => {
-      const missing = used[b].vars.filter((v) => !(v in state.data[br].tokens));
+      const missing = used[b].keys.filter((k) => !(k in state.data[br].theme));
       const bad = missing.length || used[b].hardcoded;
       const note = [missing.length && `missing: ${missing.join(', ')}`, used[b].hardcoded && `${used[b].hardcoded} hardcoded color(s)`].filter(Boolean).join(' · ');
       tr.append(el('td', { className: bad ? 'bad' : 'ok' }, bad ? '✗ ' : '✓ ', el('small', { textContent: note || 'full parity' })));
     });
     table.append(tr);
   });
-  const score = state.brands.map((br) => {
-    const all = new Set(Object.values(used).flatMap((u) => u.vars));
-    const have = [...all].filter((v) => v in state.data[br].tokens).length;
-    return `${state.data[br].name} ${Math.round((100 * have) / all.size)}%`;
-  });
-  $('#matrix').replaceChildren(el('p', { textContent: `Token coverage: ${score.join(' · ')}` }), table);
+  const all = new Set(Object.values(used).flatMap((u) => u.keys));
+  const score = state.brands.map((br) => `${state.data[br].name} ${Math.round((100 * [...all].filter((k) => k in state.data[br].theme).length) / all.size)}%`);
+  $('#matrix').replaceChildren(el('p', { textContent: `Theme coverage: ${score.join(' · ')}` }), table);
 }
 
 async function init() {
-  const sdkReady = loadSdk().then(() => {
-    if (sdk && !$('#repo').value) $('#repo').value = `${sdk.context.org}/${sdk.context.repo}`;
-  });
+  loadSdk().then(() => { if (sdk && !$('#repo').value) $('#repo').value = `${sdk.context.org}/${sdk.context.repo}`; });
   const cfg = await (await fetch('/tokens/brands.json')).json();
   state.brands = cfg.brands; state.blocks = cfg.blocks;
   await Promise.all(state.brands.map(async (b) => { state.data[b] = await (await fetch(`/tokens/${b}.json`)).json(); }));
@@ -115,9 +118,8 @@ async function init() {
   sel.addEventListener('change', () => { state.current = sel.value; renderControls(); renderPreviews(); });
   $('#compare').addEventListener('change', renderPreviews);
   $('#save').addEventListener('click', save);
-  let remembered = '';
-  try { remembered = localStorage.getItem('brandlens-repo') || ''; } catch (e) { /* ignore */ }
-  $('#repo').value = remembered;  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => {
+  try { $('#repo').value = localStorage.getItem('radix-brands-repo') || ''; } catch (e) { /* ignore */ }
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x === b));
     $('#designer').hidden = b.dataset.tab !== 'designer'; $('#parity').hidden = b.dataset.tab !== 'parity';
     if (b.dataset.tab === 'parity') renderParity();
