@@ -10,14 +10,15 @@ const ACCENTS = ['gold', 'bronze', 'brown', 'red', 'crimson', 'ruby', 'tomato', 
 const GRAYS = ['gray', 'mauve', 'slate', 'sage', 'olive', 'sand'];
 const RADII = ['none', 'small', 'medium', 'large', 'full'];
 const CONTAINERS = { 1: '448px', 2: '688px', 3: '880px', 4: '1136px' };
+const RAW_PREFIX = 'https://raw.githubusercontent.com/ynaka-adobe/radix-design-system/';
 const SAFE_VALUE = /^(?!.*(url\(|@import|expression\(|[;{}<>])).*$/i;
 
 /** Where the design system is published. ?ds= overrides it for the session (testing). */
 export function dsBase() {
   let v = new URLSearchParams(window.location.search).get('ds');
   try {
-    if (v) sessionStorage.setItem('radix-ds', v);
-    else v = sessionStorage.getItem('radix-ds');
+    if (v === 'live') { sessionStorage.removeItem('radix-ds'); v = null; } else if (v) sessionStorage.setItem('radix-ds', v);
+    if (!new URLSearchParams(window.location.search).get('ds')) v = sessionStorage.getItem('radix-ds');
   } catch (e) { /* storage unavailable */ }
   try {
     const u = new URL(v || DEFAULT_DS);
@@ -38,7 +39,9 @@ export async function loadBrand(base, manifest, id) {
   const entry = manifest.brands.find((b) => b.id === id) || manifest.brands[0];
   const r = await fetch(new URL(entry.file, `${base}manifest.json`), { cache: 'no-cache' });
   if (!r.ok) throw new Error(`brand ${r.status}`);
-  return { id: entry.id, ...(await r.json()) };
+  const brand = await r.json();
+  const defaults = Object.fromEntries(Object.entries(manifest.tokens || {}).map(([k, v]) => [k, v.default]));
+  return { id: entry.id, ...brand, tokens: { ...defaults, ...(brand.tokens || {}) } };
 }
 
 const text = (v, max = 200) => (typeof v === 'string' && v.length < max && SAFE_VALUE.test(v) ? v : undefined);
@@ -58,7 +61,9 @@ export function sanitizeBrand(b = {}) {
   const layout = {};
   if (/^[1-9]$/.test(l.sectionSpace)) layout.sectionSpace = l.sectionSpace;
   if (CONTAINERS[l.containerSize]) layout.containerSize = l.containerSize;
-  return { theme, typography, layout };
+  const tokens = {};
+  Object.entries(b.tokens || {}).forEach(([k, v]) => { if (/^--ds-[a-z0-9-]+$/.test(k) && text(v, 100)) tokens[k] = v; });
+  return { theme, typography, layout, tokens };
 }
 
 function ensureTokens(url) {
@@ -76,7 +81,9 @@ function ensureTokens(url) {
 export const pageRoot = () => document.querySelector('main') || document.body;
 
 export function applyBrand(raw, tokensCss, root = pageRoot()) {
-  const { theme, typography: ty, layout } = sanitizeBrand(raw);
+  const {
+    theme, typography: ty, layout, tokens,
+  } = sanitizeBrand(raw);
   ensureTokens(tokensCss);
   root.classList.add('radix-themes');
   root.classList.remove('light', 'dark');
@@ -95,6 +102,35 @@ export function applyBrand(raw, tokensCss, root = pageRoot()) {
   set('--ds-heading-transform', ty.headingTransform);
   set('--ds-section-space', layout.sectionSpace ? `var(--space-${layout.sectionSpace})` : undefined);
   set('--ds-container', layout.containerSize ? CONTAINERS[layout.containerSize] : undefined);
+  (root.dataset.dsTokens || '').split(' ').filter(Boolean).forEach((k) => root.style.removeProperty(k));
+  Object.entries(tokens).forEach(([k, v]) => root.style.setProperty(k, v));
+  root.dataset.dsTokens = Object.keys(tokens).join(' ');
+}
+
+/** The design system branch being previewed, or '' for the live design system. */
+export function dsBranch(base = dsBase()) {
+  if (!base.startsWith(RAW_PREFIX)) return base.startsWith(DEFAULT_DS) ? '' : 'local';
+  return base.slice(RAW_PREFIX.length).replace(/\/public\/$/, '');
+}
+
+/**
+ * Previewing a branch of the design system: also use that branch's block CSS, so authors see
+ * block changes before they are merged. Only the design system's own branches and localhost are trusted for this.
+ */
+export async function applyBranchBlocks(base, manifest) {
+  const local = ['localhost', '127.0.0.1'].includes(new URL(base).hostname);
+  if (!base.startsWith(RAW_PREFIX) && !local) return;
+  const root = base.startsWith(RAW_PREFIX) ? new URL('../eds/blocks/', base) : new URL('eds/blocks/', base);
+  await Promise.all(Object.keys(manifest.blocks || {}).filter((n) => /^[a-z][a-z0-9-]*$/.test(n)).map(async (n) => {
+    try {
+      const r = await fetch(new URL(`${n}/${n}.css`, root), { cache: 'no-cache' });
+      if (!r.ok) return;
+      document.querySelector(`style[data-ds-block="${n}"]`)?.remove();
+      const st = document.createElement('style');
+      st.dataset.dsBlock = n; st.textContent = await r.text();
+      document.head.append(st);
+    } catch (e) { /* block stays as synced */ }
+  }));
 }
 
 /** Which brand-file field supplies each CSS variable a block may use (drives the parity check). */
@@ -104,7 +140,7 @@ export function fieldOf(v) {
   if (/^--radius-/.test(v)) return 'theme.radius';
   if (/^--(space|font-size|line-height)-/.test(v)) return 'theme.scaling';
   if (/^--shadow-/.test(v)) return 'theme.appearance';
-  return {
+  const known = {
     '--default-font-family': 'typography.bodyFont',
     '--ds-heading-font': 'typography.headingFont',
     '--ds-heading-weight': 'typography.headingWeight',
@@ -113,4 +149,5 @@ export function fieldOf(v) {
     '--ds-section-space': 'layout.sectionSpace',
     '--ds-container': 'layout.containerSize',
   }[v];
+  return known || (/^--ds-/.test(v) ? `tokens.${v}` : undefined);
 }

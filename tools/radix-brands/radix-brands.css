@@ -13,6 +13,9 @@ aside { padding:16px; border-right:1px solid var(--line); overflow:auto; display
 #brandList { display:flex; flex-wrap:wrap; gap:6px; }
 #brandList button { flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); cursor:pointer; font:inherit; }
 #brandList button.active { background:var(--text); color:var(--bg); }
+label.stack { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:12px; }
+label.stack select { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); }
+#openPage { color:var(--accent); text-decoration:none; }
 label.inline { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px; }
 .hint, #status { color:var(--muted); font-size:12px; margin:0; }
 dl { margin:0; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:12px; }

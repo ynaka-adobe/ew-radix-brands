@@ -18,11 +18,12 @@
 <div class="button"><div><div><p><a href="#">Build yours</a></p><p><a href="#">Find a dealer</a></p></div></div></div>
 </main>
 <script type="module">
-import { dsBase, loadManifest, loadBrand, applyBrand } from '/scripts/radix-theme.js';
+import { dsBase, loadManifest, loadBrand, applyBrand, applyBranchBlocks } from '/scripts/radix-theme.js';
 const id = new URLSearchParams(location.search).get('brand');
 const base = dsBase();
 const manifest = await loadManifest(base);
 applyBrand(await loadBrand(base, manifest, id), manifest.tokensCss);
+await applyBranchBlocks(base, manifest);
 </script>
 </body>
 </html>

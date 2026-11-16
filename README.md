@@ -37,3 +37,10 @@ Experience Workspace has no SDK call to restyle its preview. The app posts the c
 Run `python3 -m http.server 3000` here and `npm run dev -- --port 3016` in the design system, then open `http://localhost:3000/tools/radix-brands/radix-brands.html?ds=http://localhost:3016/`.
 
 Brands (OEM, Distributor A) are placeholders, not real assets. Not affiliated with or endorsed by Radix or WorkOS.
+
+## Design system source (live or branch)
+
+The Radix Brands app has a **Design system source** selector. Authors can view content against the live design system
+or against any branch of `radix-design-system`. A branch supplies brands, custom tokens (`--ds-*`) and block CSS.
+"Open the site with this source" opens the site with `?ds=` and `?brand=`; a label on the page names the branch,
+and `?ds=live` goes back. Block JavaScript for new blocks arrives with the sync pull request, not the preview.

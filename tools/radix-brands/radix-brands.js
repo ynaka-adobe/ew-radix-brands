@@ -1,27 +1,64 @@
-import { fieldOf } from '/scripts/radix-theme.js';
+import { fieldOf, dsBranch } from '/scripts/radix-theme.js';
 import { loadDesignSystem, showInEditor, ownFrames } from '/tools/radix-brands/shared.js';
 
 const $ = (s) => document.querySelector(s);
 const el = (t, props = {}, ...kids) => { const n = Object.assign(document.createElement(t), props); n.append(...kids); return n; };
 const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj);
 const state = { ds: null, current: null };
+const RAW = 'https://raw.githubusercontent.com/ynaka-adobe/radix-design-system/';
+const rawBase = (branch) => `${RAW}${branch}/public/`;
+const isLocal = (base) => ['localhost', '127.0.0.1'].includes(new URL(base).hostname);
+const dsParam = () => (dsBranch(state.ds.base) ? `&ds=${encodeURIComponent(state.ds.base)}` : '');
+
+/** Where a block's CSS comes from: the previewed design system branch, else this site. */
+async function blockCss(n) {
+  const { base } = state.ds;
+  const url = base.startsWith(RAW) ? new URL(`../eds/blocks/${n}/${n}.css`, base) : isLocal(base) ? new URL(`eds/blocks/${n}/${n}.css`, base) : null;
+  if (url) { const r = await fetch(url, { cache: 'no-cache' }).catch(() => null); if (r?.ok) return r.text(); }
+  const site = await fetch(`/blocks/${n}/${n}.css`);
+  return site.ok ? site.text() : '';
+}
+
+/** Authors choose the live design system or a branch a designer or developer has created. */
+async function initSource() {
+  const sel = $('#dsSource');
+  const current = dsBranch(state.ds.base);
+  try {
+    const r = await fetch('https://api.github.com/repos/ynaka-adobe/radix-design-system/branches?per_page=100');
+    const names = r.ok ? (await r.json()).map((b) => b.name).filter((n) => n !== 'main') : [];
+    names.forEach((n) => sel.append(el('option', { value: n, textContent: `Branch: ${n}` })));
+    if (current && current !== 'local' && !names.includes(current)) sel.append(el('option', { value: current, textContent: `Branch: ${current}` }));
+  } catch (e) { /* offline: live only */ }
+  if (current === 'local') sel.append(el('option', { value: 'local', textContent: 'Local design system' }));
+  sel.value = current || '';
+  sel.addEventListener('change', () => {
+    try {
+      if (sel.value && sel.value !== 'local') sessionStorage.setItem('radix-ds', rawBase(sel.value)); else if (!sel.value) sessionStorage.removeItem('radix-ds');
+    } catch (e) { /* storage unavailable */ }
+    window.location.reload();
+  });
+}
+function renderOpenPage() {
+  const q = dsBranch(state.ds.base) ? `?ds=${encodeURIComponent(state.ds.base)}&brand=${state.current}` : `?ds=live&brand=${state.current}`;
+  $('#openPage').href = `${window.location.origin}/${q}`;
+}
 
 function renderSummary() {
   const b = state.ds.brands[state.current];
   const rows = (title, obj) => [el('h2', { textContent: title }), el('dl', {}, ...Object.entries(obj).flatMap(([k, v]) => [el('dt', { textContent: k }), el('dd', { textContent: v })]))];
-  $('#summary').replaceChildren(...rows('Theme', b.theme), ...rows('Typography', b.typography), ...rows('Layout', b.layout));
+  $('#summary').replaceChildren(...rows('Theme', b.theme), ...rows('Typography', b.typography), ...rows('Layout', b.layout), ...(Object.keys(b.tokens || {}).length ? rows('Custom tokens', b.tokens) : []));
 }
 
 function renderPreviews() {
   const ids = [state.current];
   if ($('#compare').checked) ids.push(Object.keys(state.ds.brands).find((b) => b !== state.current));
-  $('#previews').replaceChildren(...ids.map((id) => el('iframe', { src: `/tools/radix-brands/gallery.html?brand=${id}`, title: id })));
+  $('#previews').replaceChildren(...ids.map((id) => el('iframe', { src: `/tools/radix-brands/gallery.html?brand=${id}${dsParam()}`, title: id })));
 }
 
 function select(id, send = true) {
   state.current = id;
   document.querySelectorAll('#brandList button').forEach((b) => b.classList.toggle('active', b.dataset.id === id));
-  renderSummary(); renderPreviews();
+  renderSummary(); renderPreviews(); renderOpenPage();
   if (!send) return;
   $('#status').textContent = 'Showing in the editor view…';
   showInEditor(state.ds.brands[id], state.ds.manifest.tokensCss, ({ reached, acks }) => {
@@ -33,10 +70,10 @@ function select(id, send = true) {
 
 async function renderParity() {
   const { brands, manifest } = state.ds;
-  const blocks = ['hero', 'cards', 'teaser', 'button'];
+  const blocks = Object.keys(manifest.blocks || { hero: 1, cards: 1, teaser: 1, button: 1 });
   const used = {};
   await Promise.all(blocks.map(async (b) => {
-    const css = await (await fetch(`/blocks/${b}/${b}.css`)).text();
+    const css = await blockCss(b);
     const fields = [...new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => fieldOf(m[1])).filter(Boolean))];
     used[b] = { fields, hardcoded: (css.replace(/var\([^)]*\)/g, '').match(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/gi) || []).length };
   }));
@@ -94,6 +131,7 @@ async function init() {
     $('#source').textContent = `Could not load the design system (${e.message}). Check the URL in scripts/radix-theme.js.`; return;
   }
   $('#source').textContent = `Design system: ${state.ds.base}`;
+  initSource();
   $('#edit').href = state.ds.base;
   Object.values(state.ds.brands).forEach((b) => {
     const btn = el('button', { textContent: b.name }); btn.dataset.id = b.id;

@@ -4,7 +4,20 @@
  * Design system URL: DEFAULT_DS in radix-theme.js (or ?ds= for testing).
  * Add `import './brand.js';` to your site's scripts.js.
  */
-import { dsBase, loadManifest, loadBrand, applyBrand } from './radix-theme.js';
+import {
+  dsBase, loadManifest, loadBrand, applyBrand, applyBranchBlocks, dsBranch,
+} from './radix-theme.js';
+
+/** Authors previewing a design system branch get a visible label and a way back to live. */
+function showSourceBadge(branch) {
+  if (!branch || document.getElementById('ds-source-badge')) return;
+  const a = document.createElement('a');
+  a.id = 'ds-source-badge';
+  a.href = '?ds=live';
+  a.textContent = `Previewing design system: ${branch} (switch to live)`;
+  a.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99;padding:6px 10px;border-radius:999px;background:#1c2024;color:#fff;font:12px system-ui;text-decoration:none';
+  document.body.append(a);
+}
 
 async function run() {
   try {
@@ -18,6 +31,8 @@ async function run() {
     } catch (e) { /* storage unavailable */ }
     const brand = await loadBrand(base, manifest, id);
     applyBrand(brand, manifest.tokensCss);
+    await applyBranchBlocks(base, manifest);
+    showSourceBadge(dsBranch(base));
     document.documentElement.dataset.brand = brand.id;
   } catch (e) {
     // eslint-disable-next-line no-console
