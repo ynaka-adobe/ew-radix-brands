@@ -75,13 +75,14 @@ async function renderParity() {
   await Promise.all(blocks.map(async (b) => {
     const css = await blockCss(b);
     const fields = [...new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => fieldOf(m[1])).filter(Boolean))];
-    used[b] = { fields, hardcoded: (css.replace(/var\([^)]*\)/g, '').match(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/gi) || []).length };
+    used[b] = { absent: !css.trim(), fields, hardcoded: (css.replace(/var\([^)]*\)/g, '').match(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/gi) || []).length };
   }));
   const ids = Object.keys(brands);
   const table = el('table', {}, el('tr', {}, el('th', { textContent: 'Block' }), ...ids.map((i) => el('th', { textContent: brands[i].name }))));
   blocks.forEach((b) => {
-    const tr = el('tr', {}, el('th', {}, b, el('small', { textContent: `needs: ${used[b].fields.join(', ')}` })));
+    const tr = el('tr', {}, el('th', {}, b, el('small', { textContent: used[b].absent ? 'not on this site yet' : `needs: ${used[b].fields.join(', ')}` })));
     ids.forEach((i) => {
+      if (used[b].absent) { tr.append(el('td', { className: 'na' }, '– ', el('small', { textContent: 'not synced, nothing to check' }))); return; }
       const missing = used[b].fields.filter((f) => !get(brands[i], f));
       const bad = missing.length || used[b].hardcoded;
       const note = [missing.length && `missing: ${missing.join(', ')}`, used[b].hardcoded && `${used[b].hardcoded} hardcoded value(s)`].filter(Boolean).join(' · ');

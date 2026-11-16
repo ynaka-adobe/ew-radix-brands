@@ -26,6 +26,7 @@ h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(-
 #parity { padding:20px; }
 table { border-collapse:collapse; background:var(--panel); }
 th, td { border:1px solid var(--line); padding:8px 14px; text-align:left; vertical-align:top; }
+td.na { background:var(--bg); color:var(--muted); }
 td.ok { background:var(--okbg); color:var(--ok); } td.bad { background:var(--badbg); color:var(--bad); }
 td small, th small { display:block; color:var(--muted); font-weight:400; }
 #ds { padding:20px; max-width:960px; }
