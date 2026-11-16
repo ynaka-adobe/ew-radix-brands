@@ -112,11 +112,34 @@ function withBrand(html, brand) {
     });
   }
 
+  // sendHTML(..., { replace: true }) replaces the block currently selected in the editor.
+  // So: if the metadata block is selected, rewrite it; if the page has none, insert one at the cursor.
+  const metaBlock = (doc, brandName) => {
+    let meta = doc.querySelector('.metadata');
+    if (!meta) { meta = doc.createElement('div'); meta.className = 'metadata'; }
+    let row = [...meta.children].find(isBrandRow);
+    if (!row) { row = doc.createElement('div'); row.innerHTML = '<div>brand</div><div></div>'; meta.append(row); }
+    row.children[1].textContent = brandName;
+    return meta;
+  };
   $('#setbrand').addEventListener('click', async () => {
-    const out = await actions.sendHTML(withBrand(liveHtml, brand), { replace: true });
-    status(out?.ok === false
-      ? `Could not update the page (${out.error}). Add a metadata row "brand | ${brand}" by hand.`
-      : `Page brand set to "${brand}".`);
+    try {
+      const hasMeta = !!parse(liveHtml).querySelector('.metadata');
+      if (!hasMeta) {
+        actions.sendHTML(metaBlock(parse(''), brand).outerHTML);
+        status(`Inserted a metadata block with brand "${brand}" at your cursor. Move it to the bottom of the page if needed.`);
+        return;
+      }
+      let selected = '';
+      try { selected = await actions.getSelection(); } catch (e) { selected = ''; }
+      const selDoc = parse(selected || '');
+      if (!selDoc.querySelector('.metadata')) {
+        status('Click the metadata block at the bottom of the page to select it, then press this button again.');
+        return;
+      }
+      const out = await actions.sendHTML(metaBlock(selDoc, brand).outerHTML, { replace: true });
+      status(out?.ok === false ? `Could not update the block (${out.error}). Edit the row "brand | ${brand}" by hand.` : `Page brand set to "${brand}".`);
+    } catch (e) { status(`Could not update the page (${e.message || e}). Add a metadata row "brand | ${brand}" by hand.`); }
   });
 
   // Persist the theme: commit tokens/<brand>.json, which every block's CSS variables read.
