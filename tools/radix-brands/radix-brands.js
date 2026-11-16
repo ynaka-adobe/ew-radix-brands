@@ -57,6 +57,38 @@ async function renderParity() {
   $('#matrix').replaceChildren(el('p', { textContent: `Design system v${manifest.version}, Radix Themes ${manifest.radixThemes}. Coverage: ${score.join(' · ')}` }), table);
 }
 
+async function renderDs() {
+  const { base } = state.ds;
+  const json = async (u) => { const r = await fetch(u, { cache: 'no-cache' }); return r.ok ? r.json() : null; };
+  const [registry, changes, lock] = await Promise.all([json(`${base}registry.json`), json(`${base}changes.json`), json('/ds.lock.json')]);
+  if (!registry) { $('#dsHead').textContent = 'The design system has not published a block registry yet.'; return; }
+  const synced = lock?.blocks || {};
+  const outdated = registry.blocks.filter((b) => synced[b.name]?.hash !== b.hash);
+  $('#dsHead').replaceChildren(
+    el('p', {}, `Design system v${registry.version}`, el('br'), `This site is synced to ${lock?.version ? `v${lock.version}` : 'nothing yet'}. `,
+      el('span', { className: `pill ${outdated.length ? 'bad' : 'ok'}`, textContent: outdated.length ? `${outdated.length} block${outdated.length > 1 ? 's' : ''} to sync` : 'blocks in sync' })),
+  );
+  const tc = changes?.tokenChanges || [];
+  $('#dsTokens').replaceChildren(...(tc.length ? tc.map((t) => el('p', {}, el('b', { textContent: `${t.brand} · ${t.field}: ` }), `${t.from ?? '(none)'} → ${t.to ?? '(none)'}  affects `,
+    ...(t.affectedBlocks.length ? t.affectedBlocks.map((n) => el('span', { className: 'pill', textContent: n })) : [el('span', { className: 'pill', textContent: 'no blocks' })])))
+    : [el('p', { className: 'hint', textContent: changes?.from ? `No token changes since v${changes.from}.` : 'No previous version to compare yet.' })]));
+  const rows = registry.blocks.map((b) => {
+    const state_ = !synced[b.name] ? ['new, sync to add', 'bad'] : synced[b.name].hash !== b.hash ? ['update available', 'bad'] : ['in sync', 'ok'];
+    return el('tr', {}, el('th', {}, b.title, el('small', { textContent: b.name })),
+      el('td', {}, el('span', { className: 'pill', textContent: b.status })),
+      el('td', {}, b.description, el('small', { textContent: b.authoring })),
+      el('td', {}, ...b.fields.map((f) => el('span', { className: 'pill', textContent: f }))),
+      el('td', {}, el('span', { className: `pill ${state_[1]}`, textContent: state_[0] })));
+  });
+  $('#dsBlocks').replaceChildren(el('table', {}, el('tr', {}, ...['Block', 'Status', 'Spec', 'Design system fields it uses', 'This site'].map((h) => el('th', { textContent: h }))), ...rows));
+  $('#dsRun').onclick = async () => {
+    const token = $('#dsPat').value; const repo = lock?.repo;
+    if (!token || !repo) { $('#dsStatus').textContent = 'Enter a token.'; return; }
+    const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/ds-sync.yml/dispatches`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }, body: JSON.stringify({ ref: 'main' }) });
+    $('#dsStatus').textContent = r.status === 204 ? `Sync started. A pull request will appear at github.com/${repo}/pulls.` : `Could not start the sync (${r.status}).`;
+  };
+}
+
 async function init() {
   try { state.ds = await loadDesignSystem(); } catch (e) {
     $('#source').textContent = `Could not load the design system (${e.message}). Check the URL in scripts/radix-theme.js.`; return;
@@ -71,8 +103,9 @@ async function init() {
   $('#compare').addEventListener('change', renderPreviews);
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x === b));
-    $('#brands').hidden = b.dataset.tab !== 'brands'; $('#parity').hidden = b.dataset.tab !== 'parity';
+    $('#brands').hidden = b.dataset.tab !== 'brands'; $('#parity').hidden = b.dataset.tab !== 'parity'; $('#ds').hidden = b.dataset.tab !== 'ds';
     if (b.dataset.tab === 'parity') renderParity();
+    if (b.dataset.tab === 'ds') renderDs();
   }));
   select(Object.keys(state.ds.brands)[0], false);
 }

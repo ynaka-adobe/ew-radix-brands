@@ -1,0 +1,23 @@
+{
+  "repo": "ynaka-adobe/ew-radix-brands",
+  "hub": "https://ynaka-adobe.github.io/radix-design-system/",
+  "version": "1.0.0",
+  "blocks": {
+    "button": {
+      "hash": "74e66f341306",
+      "version": "1.0.0"
+    },
+    "cards": {
+      "hash": "b69290b20828",
+      "version": "1.0.0"
+    },
+    "hero": {
+      "hash": "1e79927fdea8",
+      "version": "1.0.0"
+    },
+    "teaser": {
+      "hash": "873dd1948868",
+      "version": "1.0.0"
+    }
+  }
+}

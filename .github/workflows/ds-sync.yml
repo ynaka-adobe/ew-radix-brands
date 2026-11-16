@@ -1,0 +1,31 @@
+name: Design system sync
+# Opens a pull request when the Radix design system adds or changes EDS blocks.
+# Token (brand) changes need no code: the site reads them live.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [design-system-release]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/ds-sync.mjs
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          branch: design-system/sync
+          delete-branch: true
+          add-paths: |
+            blocks/**
+            ds.lock.json
+          commit-message: 'Design system sync'
+          title: 'Design system sync'
+          body-path: ds-sync-summary.md

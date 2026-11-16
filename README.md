@@ -24,6 +24,12 @@ Radix is the third-party integration: brands are Radix Themes settings, and the 
    - or a `panels`/`library` row with path `https://main--SITE--ORG.aem.live/tools/radix-brands/radix-brands.html`
 4. To give a page a brand, add a Metadata block row `brand | <brand id>`.
 
+## Staying in sync with the design system
+The hub owns the blocks and their specs. This repo receives them:
+- **Token (brand) changes** apply live: no code change, no sync. The app's **Design system** tab lists each change and the blocks it affects, so they can be checked.
+- **New or changed blocks** arrive as a pull request from `.github/workflows/ds-sync.yml` (hourly, on demand, or when the hub dispatches `design-system-release`). It runs `scripts/ds-sync.mjs` and records versions in `ds.lock.json`. The tab shows each block as in sync, update available, or new, and has a **Sync now** button.
+- Do not edit synced blocks here; change them in the design system. Turn on "Allow GitHub Actions to create and approve pull requests" in the repo's Settings, Actions, General.
+
 ## Editor view
 Experience Workspace has no SDK call to restyle its preview. The app posts the chosen brand to the editor window and the site's `brand.js` applies it and replies. If the status line reports that no page responded, refresh the editor; the page reads the brand from its metadata on load.
 

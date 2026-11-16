@@ -14,6 +14,7 @@
   <nav>
     <button data-tab="brands" class="active">Brands</button>
     <button data-tab="parity">Parity</button>
+    <button data-tab="ds">Design system</button>
   </nav>
   <a id="edit" target="_blank" rel="noopener">Edit in the design system ↗</a>
 </header>
@@ -31,6 +32,20 @@
   <section id="parity" hidden>
     <p class="hint">Every block against every brand. A cell is green when the brand defines everything the block's CSS depends on, and the block uses no hardcoded colors or sizes.</p>
     <div id="matrix"></div>
+  </section>
+  <section id="ds" hidden>
+    <div id="dsHead"></div>
+    <h2>Token changes</h2>
+    <p class="hint">Applied live. Brand values are read at page load, so no code change is needed. Affected blocks are listed so they can be checked.</p>
+    <div id="dsTokens"></div>
+    <h2>Blocks</h2>
+    <p class="hint">Owned by the design system. New or changed blocks reach this site as a pull request.</p>
+    <div id="dsBlocks"></div>
+    <details id="dsSync"><summary>Sync now</summary>
+      <p class="hint">Runs the "Design system sync" GitHub workflow, which opens a pull request. Needs a token with Actions: write on the repo.</p>
+      <label class="inline">Token <input id="dsPat" type="password" autocomplete="off"></label>
+      <button id="dsRun">Run sync</button> <span id="dsStatus" class="hint"></span>
+    </details>
   </section>
 </main>
 </body>
