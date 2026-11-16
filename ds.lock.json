@@ -26,6 +26,10 @@
     "banner": {
       "hash": "030549e3591b",
       "version": "1.0.0"
+    },
+    "tabs": {
+      "hash": "04a09480c1ab",
+      "version": "1.0.0"
     }
   }
 }
