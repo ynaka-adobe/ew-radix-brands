@@ -22,6 +22,10 @@
     "accordion": {
       "hash": "5ba77e2e4cd7",
       "version": "1.0.0"
+    },
+    "banner": {
+      "hash": "cf027599c828",
+      "version": "1.0.0"
     }
   }
 }
