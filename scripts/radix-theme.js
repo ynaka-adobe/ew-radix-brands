@@ -110,7 +110,8 @@ export function applyBrand(raw, tokensCss, root = pageRoot()) {
 /** The design system branch being previewed, or '' for the live design system. */
 export function dsBranch(base = dsBase()) {
   if (!base.startsWith(RAW_PREFIX)) return base.startsWith(DEFAULT_DS) ? '' : 'local';
-  return base.slice(RAW_PREFIX.length).replace(/\/public\/$/, '');
+  const ref = base.slice(RAW_PREFIX.length).replace(/\/public\/$/, '');
+  return /^[0-9a-f]{40}$/.test(ref) ? `draft ${ref.slice(0, 7)}` : ref;
 }
 
 /**
