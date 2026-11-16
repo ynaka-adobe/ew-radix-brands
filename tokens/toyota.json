@@ -1,7 +1,7 @@
 {
   "name": "Toyota",
   "theme": {
-    "accentColor": "red",
+    "accentColor": "crimson",
     "grayColor": "gray",
     "radius": "full",
     "scaling": "100%",
