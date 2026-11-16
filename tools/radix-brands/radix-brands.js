@@ -91,7 +91,7 @@ async function save() {
       const mk = await fetch(`${api}/git/refs`, { method: 'POST', headers: h, body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }) });
       if (!mk.ok && mk.status !== 422) throw new Error(`branch: ${mk.status}`);
     }
-    const cur = await fetch(`${api}/contents/${path}?ref=${branch}`, { headers: h });
+    const cur = await fetch(`${api}/contents/${path}?ref=${branch}&_=${Date.now()}`, { headers: h, cache: 'no-store' });
     const sha = cur.ok ? (await cur.json()).sha : undefined;
     const content = btoa(unescape(encodeURIComponent(`${JSON.stringify(state.data[state.current], null, 2)}\n`)));
     const put = await fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify({ message: `Update ${state.current} Radix theme`, branch, sha, content }) });

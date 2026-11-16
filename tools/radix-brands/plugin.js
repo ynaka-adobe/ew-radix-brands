@@ -24,11 +24,18 @@ function allFrames(win, out = []) {
   return out;
 }
 /** Send a message to every other frame in the editor, including the page preview. */
-function broadcast(message) {
+let reached = 0; let acks = 0; let ackTimer;
+function broadcast(message, onResult) {
   let top = window;
   try { top = window.top; } catch (e) { /* use self */ }
-  allFrames(top).filter((f) => f !== window).forEach((f) => { try { f.postMessage(message, '*'); } catch (e) { /* ignore */ } });
+  const targets = allFrames(top).filter((f) => f !== window);
+  reached = targets.length; acks = 0;
+  targets.forEach((f) => { try { f.postMessage(message, '*'); } catch (e) { /* ignore */ } });
+  // The site replies 'radix-brands:applied' when it applied the theme.
+  clearTimeout(ackTimer);
+  ackTimer = setTimeout(() => onResult?.({ reached, acks }), 700);
 }
+window.addEventListener('message', (e) => { if (e.data?.type === 'radix-brands:applied') acks += 1; });
 
 function parse(html) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -67,7 +74,13 @@ function withBrand(html, brand) {
     $('#apply').disabled = !dirty();
     $('#setbrand').disabled = !liveHtml || typeof actions.sendHTML !== 'function' || pageBrand === brand;
   };
-  const push = () => { broadcast({ type: 'radix-brands:theme', theme: data[brand].theme }); refresh(); };
+  const push = () => {
+    broadcast({ type: 'radix-brands:theme', theme: data[brand].theme }, ({ reached: n, acks: a }) => {
+      status(a ? `Updated ${a} view${a > 1 ? 's' : ''} in the editor. Apply to save it to the repo.`
+        : `No page responded (reached ${n} frame${n === 1 ? '' : 's'}). The editor preview may not load this site's brand.js.`);
+    });
+    refresh();
+  };
 
   function renderControls() {
     const { theme } = data[brand];
@@ -79,7 +92,6 @@ function withBrand(html, brand) {
       input.addEventListener('input', () => {
         if (input.value === '') delete theme[f.key]; else theme[f.key] = input.value;
         push();
-        status('Previewing live in the editor. Apply to save it to the repo.');
       });
       return el('label', { className: f.wide ? 'wide' : '' }, f.label, input);
     }));
@@ -156,10 +168,15 @@ function withBrand(html, brand) {
       const info = await fetch(api, { headers: h });
       if (!info.ok) throw new Error(`repo ${info.status}`);
       const branch = (await info.json()).default_branch;
-      const cur = await fetch(`${api}/contents/${path}?ref=${branch}`, { headers: h });
-      const sha = cur.ok ? (await cur.json()).sha : undefined;
       const content = btoa(unescape(encodeURIComponent(`${JSON.stringify(data[brand], null, 2)}\n`)));
-      const put = await fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify({ message: `Update ${data[brand].name} Radix theme`, branch, sha, content }) });
+      const commit = async () => {
+        // no-store: the contents API response is cacheable and a stale sha causes a 409
+        const cur = await fetch(`${api}/contents/${path}?ref=${branch}&_=${Date.now()}`, { headers: h, cache: 'no-store' });
+        const sha = cur.ok ? (await cur.json()).sha : undefined;
+        return fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify({ message: `Update ${data[brand].name} Radix theme`, branch, sha, content }) });
+      };
+      let put = await commit();
+      if (put.status === 409) put = await commit();
       if (!put.ok) throw new Error(`commit ${put.status}`);
       saved[brand] = JSON.stringify(data[brand].theme);
       status(`Saved ${path} to ${branch}. The site picks it up after Code Sync (a few seconds).`);

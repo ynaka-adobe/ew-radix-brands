@@ -19,13 +19,13 @@ async function applyBrand() {
   return brand;
 }
 
-// Live editing: when this page is shown inside Experience Workspace's preview, the
-// Radix Brand Themes panel posts theme changes here. applyTheme() sanitizes them.
-if (window !== window.top) {
-  window.addEventListener('message', (e) => {
-    if (e.data?.type === 'radix-brands:theme') applyTheme(e.data.theme);
-  });
-}
+// Live editing: the Radix Brand Themes panel posts theme changes here (from the editor).
+// applyTheme() sanitizes them. We reply so the panel can tell the author it worked.
+window.addEventListener('message', (e) => {
+  if (e.data?.type !== 'radix-brands:theme') return;
+  applyTheme(e.data.theme);
+  try { e.source?.postMessage({ type: 'radix-brands:applied', href: window.location.href }, '*'); } catch (err) { /* ignore */ }
+});
 
 /** Resolves once the brand theme is applied. */
 const brandReady = applyBrand();
