@@ -25,7 +25,8 @@
       <details><summary>Save to GitHub</summary>
         <label>Repo (owner/name) <input id="repo" placeholder="org/site"></label>
         <label>Personal access token <input id="pat" type="password" placeholder="repo scope"></label>
-        <button id="save">Save tokens to branch</button>
+        <label class="inline"><input type="checkbox" id="direct" checked> Commit directly to the default branch (uncheck for a pull request)</label>
+        <button id="save">Apply to repo</button>
         <p id="saveStatus"></p>
       </details>
     </aside>

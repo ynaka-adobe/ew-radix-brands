@@ -25,3 +25,6 @@ th, td { border:1px solid var(--line); padding:8px 14px; text-align:left; vertic
 td.ok { background:var(--okbg); color:var(--ok); }
 td.bad { background:var(--badbg); color:var(--bad); }
 td small { display:block; color:var(--muted); }
+
+/* Narrow (side panel): controls only. The editor's own view is the preview. */
+@media (max-width: 800px) { #designer { grid-template-columns: 1fr; height: auto; } #previews, label.inline { display: none; } aside { border-right: 0; } }

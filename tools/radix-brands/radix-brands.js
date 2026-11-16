@@ -13,8 +13,22 @@ async function loadSdk() {
 const $ = (s) => document.querySelector(s);
 const el = (t, props = {}, ...kids) => { const n = Object.assign(document.createElement(t), props); n.append(...kids); return n; };
 
+// ---- live update of the editor view ----
+function allFrames(win, out = []) {
+  try { for (let i = 0; i < win.length; i += 1) { out.push(win[i]); allFrames(win[i], out); } } catch (e) { /* inaccessible */ }
+  return out;
+}
+function broadcast(theme) {
+  let top = window;
+  try { top = window.top; } catch (e) { /* use self */ }
+  const own = allFrames(window); // this app's own gallery iframes get their own messages
+  allFrames(top).filter((f) => f !== window && !own.includes(f))
+    .forEach((f) => { try { f.postMessage({ type: 'radix-brands:theme', theme }, '*'); } catch (e) { /* ignore */ } });
+}
+
 // ---- designer ----
 function sendTheme(brand) {
+  broadcast(state.data[brand].theme);
   document.querySelectorAll('#previews iframe').forEach((f) => {
     if (f.dataset.brand === brand) f.contentWindow.postMessage({ type: 'radix-brands:theme', theme: state.data[brand].theme }, '*');
   });
@@ -66,18 +80,23 @@ async function save() {
   try { localStorage.setItem('radix-brands-repo', $('#repo').value); } catch (e) { /* ignore */ }
   const api = `https://api.github.com/repos/${owner}/${repo}`;
   const h = { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' };
-  const branch = `radix-brands/${state.current}-theme`;
+  let branch = `radix-brands/${state.current}-theme`;
+  const direct = $('#direct').checked;
   const path = `tokens/${state.current}.json`;
   try {
     const repoInfo = await (await fetch(api, { headers: h })).json();
-    const base = await (await fetch(`${api}/git/ref/heads/${repoInfo.default_branch}`, { headers: h })).json();
-    const mk = await fetch(`${api}/git/refs`, { method: 'POST', headers: h, body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }) });
-    if (!mk.ok && mk.status !== 422) throw new Error(`branch: ${mk.status}`);
+    if (direct) branch = repoInfo.default_branch;
+    else {
+      const base = await (await fetch(`${api}/git/ref/heads/${repoInfo.default_branch}`, { headers: h })).json();
+      const mk = await fetch(`${api}/git/refs`, { method: 'POST', headers: h, body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: base.object.sha }) });
+      if (!mk.ok && mk.status !== 422) throw new Error(`branch: ${mk.status}`);
+    }
     const cur = await fetch(`${api}/contents/${path}?ref=${branch}`, { headers: h });
     const sha = cur.ok ? (await cur.json()).sha : undefined;
     const content = btoa(unescape(encodeURIComponent(`${JSON.stringify(state.data[state.current], null, 2)}\n`)));
     const put = await fetch(`${api}/contents/${path}`, { method: 'PUT', headers: h, body: JSON.stringify({ message: `Update ${state.current} Radix theme`, branch, sha, content }) });
     if (!put.ok) throw new Error(`commit: ${put.status}`);
+    if (direct) { status.textContent = `Saved ${path} to ${branch}. The site updates after Code Sync.`; return; }
     status.replaceChildren('Saved. ', el('a', { href: `https://github.com/${owner}/${repo}/compare/${repoInfo.default_branch}...${branch}?expand=1`, target: '_blank', textContent: 'Open pull request' }));
   } catch (e) { status.textContent = `Save failed: ${e.message}`; }
 }
@@ -115,7 +134,7 @@ async function init() {
   state.current = state.brands[0];
   const sel = $('#brand');
   state.brands.forEach((b) => sel.append(el('option', { value: b, textContent: state.data[b].name })));
-  sel.addEventListener('change', () => { state.current = sel.value; renderControls(); renderPreviews(); });
+  sel.addEventListener('change', () => { state.current = sel.value; renderControls(); renderPreviews(); broadcast(state.data[state.current].theme); });
   $('#compare').addEventListener('change', renderPreviews);
   $('#save').addEventListener('click', save);
   try { $('#repo').value = localStorage.getItem('radix-brands-repo') || ''; } catch (e) { /* ignore */ }
