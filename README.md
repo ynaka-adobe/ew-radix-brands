@@ -4,7 +4,7 @@ Share one set of blocks across brands, and let each brand look like itself. Bran
 
 | Persona | Where | What they do |
 |---|---|---|
-| Author | Library plugin (`tools/radix-brands/plugin`) | Sees the document they are editing, live (including unsaved edits), rendered in any brand. "Set as this page's brand" writes a `brand` row into the page metadata |
+| Author | Library panel (`tools/radix-brands/plugin`) | Pick a brand or change Radix settings and watch the editor's own preview update live. **Apply to repo** saves the theme to GitHub; **Set as this page's brand** writes a `brand` metadata row |
 | Designer | Fullscreen app (`tools/radix-brands/radix-brands`) | Pick Radix accent/gray/radius/scaling/appearance, see every block update live, compare brands side by side, save to GitHub as a pull request |
 | Developer | Parity tab of the same app | Matrix of blocks x brands: missing theme settings and hardcoded colors |
 
@@ -15,8 +15,10 @@ Share one set of blocks across brands, and let each brand look like itself. Bran
 - `scripts/brand.js` applies the brand on real pages. It reads `?brand=<name>`, then the page's `brand` metadata.
 
 ## How the panel and the editor preview connect
-- The panel subscribes to the live document with the Experience Workspace SDK (`actions.subscribeLiveDocument`) and renders it with the shared blocks and the selected Radix theme.
-- Extensions cannot restyle the editor's own preview directly. Instead, "Set as this page's brand" updates the document with `actions.sendHTML(html, { replace: true })`, adding a metadata row `brand | <name>`. A site that includes `brand.js` and the shared blocks re-themes its own preview from that metadata. The site's blocks must use the `--accent-*`, `--gray-*` and `--brand-*` variables, otherwise only this panel changes.
+- Extensions cannot restyle the editor's preview through the SDK. Instead the panel posts the theme (`radix-brands:theme`) to every frame in the editor window, which cross-origin frames allow. `brand.js` on the site listens when it runs inside an iframe, and `applyTheme()` sanitizes the values (known Radix color names only, no URLs).
+- **Apply to repo** commits `tokens/<brand>.json` to the repo's default branch with the GitHub API. Every block's CSS reads that theme through `--accent-*`, `--gray-*` and `--brand-*`, so one commit restyles all blocks. After Code Sync the site serves the new theme.
+- **Set as this page's brand** updates the document with `actions.sendHTML(html, { replace: true })`, adding a metadata row `brand | <name>`.
+- The site must include `brand.js` and blocks that use the variables, otherwise only the panel changes.
 
 ## Deploy
 1. Copy `tokens/`, `blocks/`, `styles/base.css`, `scripts/radix-theme.js`, `scripts/brand.js` and `tools/radix-brands/` into your Edge Delivery repo and push to `main`. Merge the blocks with your own, keeping the variable convention.
@@ -28,7 +30,7 @@ Share one set of blocks across brands, and let each brand look like itself. Bran
 5. Open `https://da.live/app/ORG/SITE/tools/radix-brands/radix-brands`.
 
 ## Saving to GitHub
-In the designer app open "Save to GitHub", enter `owner/repo` and a fine-grained personal access token with Contents: read/write. The token is only held in the page. Saving writes `tokens/<brand>.json` to branch `radix-brands/<brand>-theme` and links to the pull request.
+In the designer app open "Save to GitHub", enter `owner/repo` and a fine-grained personal access token with Contents: read/write. The token is only held for the browser session (sessionStorage). Saving writes `tokens/<brand>.json` to branch `radix-brands/<brand>-theme` and links to the pull request.
 
 ## Local development
 Run `python3 -m http.server 3000` in this folder and open `http://localhost:3000/tools/radix-brands/radix-brands.html`. In Experience Workspace use `?ref=local`.
