@@ -30,6 +30,10 @@
     "tabs": {
       "hash": "04a09480c1ab",
       "version": "1.0.0"
+    },
+    "quote": {
+      "hash": "3d7e6b39e9c3",
+      "version": "1.0.0"
     }
   }
 }
