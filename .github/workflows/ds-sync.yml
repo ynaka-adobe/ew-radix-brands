@@ -21,7 +21,7 @@ jobs:
       - run: node scripts/ds-sync.mjs
       - uses: peter-evans/create-pull-request@v6
         with:
-          branch: design-system/sync
+          branch: design-system-sync
           delete-branch: true
           add-paths: |
             blocks/**
