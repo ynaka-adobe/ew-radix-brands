@@ -34,6 +34,10 @@
     "quote": {
       "hash": "3d7e6b39e9c3",
       "version": "1.0.0"
+    },
+    "stats": {
+      "hash": "f68e99a483c6",
+      "version": "1.0.0"
     }
   }
 }
