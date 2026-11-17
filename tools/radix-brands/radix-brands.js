@@ -142,9 +142,10 @@ async function init() {
   $('#compare').addEventListener('change', renderPreviews);
   document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => {
     document.querySelectorAll('nav button').forEach((x) => x.classList.toggle('active', x === b));
-    $('#brands').hidden = b.dataset.tab !== 'brands'; $('#parity').hidden = b.dataset.tab !== 'parity'; $('#ds').hidden = b.dataset.tab !== 'ds';
+    $('#brands').hidden = b.dataset.tab !== 'brands'; $('#parity').hidden = b.dataset.tab !== 'parity'; $('#ds').hidden = b.dataset.tab !== 'ds'; $('#develop').hidden = b.dataset.tab !== 'develop';
     if (b.dataset.tab === 'parity') renderParity();
     if (b.dataset.tab === 'ds') renderDs();
+    if (b.dataset.tab === 'develop') import('/tools/radix-brands/develop.js').then((m) => m.initDevelop());
   }));
   select(Object.keys(state.ds.brands)[0], false);
 }

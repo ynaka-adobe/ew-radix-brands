@@ -15,6 +15,7 @@
     <button data-tab="brands" class="active">Brands</button>
     <button data-tab="parity">Parity</button>
     <button data-tab="ds">Design system</button>
+    <button data-tab="develop">Develop</button>
   </nav>
   <a id="edit" target="_blank" rel="noopener">Edit in the design system ↗</a>
 </header>
@@ -50,6 +51,18 @@
       <label class="inline">Token <input id="dsPat" type="password" autocomplete="off"></label>
       <button id="dsRun">Run sync</button> <span id="dsStatus" class="hint"></span>
     </details>
+  </section>
+  <section id="develop" hidden>
+    <p class="hint">Create a block, preview it on its own git branch, then publish it. Everything runs from here.</p>
+    <label class="stack">Block name <input id="devName" placeholder="steps" autocomplete="off"></label>
+    <label class="stack">What it is <input id="devDesc" placeholder="A numbered list of steps." autocomplete="off"></label>
+    <label class="stack">How authors fill it in <input id="devAuth" placeholder="One row per step. Cell one: the step." autocomplete="off"></label>
+    <label class="stack">GitHub token <input id="devToken" type="password" autocomplete="off" placeholder="Contents, Pull requests, Actions: write on both repos"></label>
+    <p><button id="devCreate">Create block and generate preview</button></p>
+    <p id="devStatus" class="hint"></p>
+    <ol id="devSteps"></ol>
+    <div id="devLinks"></div>
+    <p id="devNext" hidden><button id="devRefresh">Refresh preview</button> <button id="devPublish">Publish</button></p>
   </section>
 </main>
 </body>
